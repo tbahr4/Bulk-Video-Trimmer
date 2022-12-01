@@ -6,6 +6,8 @@ import sys
 import io
 import os
 from contextlib import redirect_stdout
+from os import listdir
+from os.path import isfile, join
 
 # bool for enforcing strict ordering (places 1,2,3,... for each clip)
 
@@ -117,23 +119,22 @@ def getClipLength(filepath: str):
 # splitStringData
 # Splits the clip string data into trimmable data
 #
-def splitStringData(fileString: str):
+def splitStringData(pathToDir: str, fileName: str):
     try:
         # save file dir
-        path = fileString
-
-        # get and remove file extension
-        fileTypeStart = fileString.rfind('.')
-        if (fileTypeStart == -1): print("ERROR: cannot find file extension")
-        fileExtension = fileString[fileTypeStart:]
-        fileString = fileString[:-len(fileExtension)]
-
-        # extract between -'s
-        stringData = fileString.split("-")
+        path = pathToDir + fileName
         
+        # get and remove file extension
+        fileTypeStart = fileName.rfind('.')
+        if (fileTypeStart == -1): print("ERROR: cannot find file extension")
+        fileExtension = fileName[fileTypeStart:]
+        fileName = fileName[:-len(fileExtension)]
+        
+        # extract between -'s
+        stringData = fileName.split("-")    
 
         # get ordering
-        order = stringData[0][len(stringData[0])-3]
+        order = stringData[0][stringData[0].find('(') + 1 : stringData[0].find(')')]
         
         # get name
         name = stringData[1][1:]
@@ -202,8 +203,8 @@ def getTimes(time1, time2, filepath: str):
 
 #trimClipOnParams("TestVideos/(7) - Clip7 - E10s.mp4", convertTime("e1s", "TestVideos/(7) - Clip7 - E10s.mp4"), convertTime("end", "TestVideos/(7) - Clip7 - E10s.mp4"), "output/out.mp4")
 
-def trimClip(filepath: str):
-    stringData = splitStringData(filepath)
+def trimClip(pathToDir: str, fileName: str):
+    stringData = splitStringData(pathToDir, fileName)
 
     # gather params
     path = stringData[0]
@@ -213,6 +214,10 @@ def trimClip(filepath: str):
     time2 = stringData[4]
     fileExtension = stringData[5]
     outputName = f"output/({order}) - {name}{fileExtension}"
+
+    # check for valid times
+    if (time1 > time2): sys.exit(f"ERROR: Start time must be before the end time ({pathToDir+fileName})")
+    if (time2 > getClipLength(pathToDir+fileName)): sys.exit(f"ERROR: End time out of bounds ({pathToDir+fileName})")
 
     # perform trim
     trimClipOnParams(path, time1, time2, outputName)
@@ -224,20 +229,38 @@ def trimClip(filepath: str):
 
 
 
-path = "TestVideos/"
+
+
+# getFilePaths
+# gather all directories from folder path
+#
+def getFilePaths(dirPath: str):
+    files = [file for file in listdir(dirPath) if isfile(join(dirPath, file))]
+    return files
+
+# trimDirectory
+# Trims all clips in specified directory
+#
+def trimDirectory(pathToDir: str):
+    for fileName in getFilePaths(path):
+        trimClip(path, fileName)
+
+
+
+
+
+
+
+#################################################
+#                                               #
+#                     MAIN                      #
+#                                               #
+#################################################
+
 if (not os.path.isdir("output")):
     os.mkdir("output")
 
-#trimClip(path + "(1) - Clip1 - 0s-10s.mp4")         
-#trimClip(path + "(2) - Clip2 - 1m50s-2m.mp4")
-#trimClip(path + "(3) - Clip3 - start-end.mp4")
-#trimClip(path + "(4) - Clip4 - 1m50s-end.mp4")
-#trimClip(path + "(5) - Clip5 - 1m50s.mp4")
-#trimClip(path + "(6) - Clip6 - 1s.5.mp4")
-#trimClip(path + "(7) - Clip7 - E10s.mp4")
-#trimClip(path + "(8) - Clip8.mp4")
-#trimClip(path + "(9) - Clip9 out of bounds - start-1h.mp4")               # SHOULD start at 1s, then goto end instead
-                            # also handle when start time is out of bounds, throw error, rather than trim
 
-
-                            # also git before continuing
+path = "TestVideos/"
+  
+trimDirectory(path)
