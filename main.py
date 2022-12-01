@@ -281,8 +281,6 @@ def combineClips(pathToDir: str, fileName1: str, fileName2: str):
 #################################################
 
 
-
-
 # Open log file if enabled
 #
 if enable_logging:
@@ -295,13 +293,31 @@ if (not os.path.isdir(outputDirectory)):
     os.mkdir(outputDirectory)
 
 
+
+
+
 path = "TestVideos/"
   
-trimDirectory(path)
+#trimDirectory(path)
 
 
 
 
 
+from tkinter import *
+from tkinter import messagebox
+#Create an instance of Tkinter frame
+win= Tk()
+#Define the geometry of the function
+win.geometry("750x250")
+answer = messagebox.askyesno("Question","Do you like Python Tkinter?")
+#Create a Label
+Label(win, text=answer, font= ('Georgia 20 bold')).pack()
+win.mainloop()
+
+
+
+
+#################################################
 # close file if open
 if enable_logging: file.close()
