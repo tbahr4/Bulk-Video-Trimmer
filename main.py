@@ -8,25 +8,27 @@ import os
 from contextlib import redirect_stdout
 from os import listdir
 from os.path import isfile, join
+from datetime import datetime
 
-# bool for enforcing strict ordering (places 1,2,3,... for each clip)
-
-# order - NAME - time1-time2 
-# auto-splice consecutive clips
-
-# maintain order of folder automatically, otherwise user may specify ordering using (X)
-
-# or view video and specify times, name, but do this after auto-ordering
+# Properties
+enable_logging = True
+outputDirectory = "output"
 
 
 
+# log
+# prints and logs the data to log file if it is enabled
+#
+def log(msg: str):
+    if enable_logging: file.write(f"{msg}\n")
+    print(msg)
 
 # trimClipOnParams
 # Trims the clip at path 'filepath' between time1 and time2 seconds.
 # Stores in output with name 'outputName'
 #
 def trimClipOnParams(filepath: str, time1: float, time2: float, outputName: str):
-    print(f"Trimming file from {str(time1)} - {str(time2)} seconds ({filepath})")
+    log(f"Trimming file from {str(time1)} - {str(time2)} seconds [(]{filepath}]")
     ffmpeg_extract_subclip(filepath, time1, time2, targetname=outputName)
 
 
@@ -69,7 +71,9 @@ def convertTime(timeString: str, filepath: str):
 
         # ensure that ms is 3 digits max
         if (ms != ''):
-            if len(timeString.split(".")[1]) > 3: sys.exit("ERROR: invalid time format. 3 millisecond digits maximum")
+            if len(timeString.split(".")[1]) > 3:
+                log(f"ERROR: invalid time format. 3 millisecond digits maximum [{filepath}]")
+                sys.exit()
 
         time = datetime.datetime.strptime(timeString, fmt).time()
         seconds = time.second + (time.minute * 60) + (time.hour * 60 * 60) + (time.microsecond / 1000000)
@@ -89,7 +93,9 @@ def convertTime(timeString: str, filepath: str):
 
         # ensure that ms is 3 digits max
         if (ms != ''):
-            if len(timeString.split(".")[1]) > 3: sys.exit("ERROR: invalid time format. 3 millisecond digits maximum")
+            if len(timeString.split(".")[1]) > 3: 
+                log(f"ERROR: invalid time format. 3 millisecond digits maximum [{filepath}]")
+                sys.exit()
 
         time = datetime.datetime.strptime(timeString, fmt).time()
         seconds = time.second + (time.minute * 60) + (time.hour * 60 * 60) + (time.microsecond / 1000000)
@@ -100,7 +106,8 @@ def convertTime(timeString: str, filepath: str):
     # INVALID form
     #
     else:
-        sys.exit("ERROR: invalid time form")
+        log(f"ERROR: invalid time form [{filepath}]")
+        sys.exit()
         
     
 # getClipLength
@@ -112,7 +119,7 @@ def getClipLength(filepath: str):
     try:
         return float(result.stdout)
     except:
-        print("ERROR: cannot find file: \"" + str(filepath) + "\"")
+        log(f"ERROR: cannot find file: [{filepath}]")
         
 
 
@@ -126,7 +133,7 @@ def splitStringData(pathToDir: str, fileName: str):
         
         # get and remove file extension
         fileTypeStart = fileName.rfind('.')
-        if (fileTypeStart == -1): print("ERROR: cannot find file extension")
+        if (fileTypeStart == -1): log(f"ERROR: cannot find file extension [{path}]")
         fileExtension = fileName[fileTypeStart:]
         fileName = fileName[:-len(fileExtension)]
         
@@ -161,7 +168,8 @@ def splitStringData(pathToDir: str, fileName: str):
         return path, order, name, t1, t2, fileExtension
 
     except:
-        sys.exit("ERROR: invalid file name format")
+        log(f"ERROR: invalid file name format [{path}]")
+        sys.exit()
 
 
 
@@ -174,8 +182,8 @@ def getTimes(time1, time2, filepath: str):
     # return original clip
     #
     if (time1 == None and time2 == None):
-        a = convertTime("start", filepath), convertTime("end", filepath)
-        return a
+        return convertTime("start", filepath), convertTime("end", filepath)
+        
 
     # 1 time specified
     # beginning or end of clip, depending on first char
@@ -183,7 +191,8 @@ def getTimes(time1, time2, filepath: str):
     elif (time2 == None):
         # check if only 'end' or 'start' are specified
         if (time1 == "start" or time1 == "end"):
-            sys.exit("ERROR: invalid time format")
+            log(f"ERROR: invalid time format [{filepath}]")
+            sys.exit()
 
         # time-end
         # will be properly handled for 'e'
@@ -196,12 +205,12 @@ def getTimes(time1, time2, filepath: str):
         return convertTime(time1, filepath), convertTime(time2, filepath)
 
     else: 
-        sys.exit("ERROR: internal time calculation error")
+        log(f"ERROR: internal time calculation error [{filepath}]")
+        sys.exit()
 
 
 
 
-#trimClipOnParams("TestVideos/(7) - Clip7 - E10s.mp4", convertTime("e1s", "TestVideos/(7) - Clip7 - E10s.mp4"), convertTime("end", "TestVideos/(7) - Clip7 - E10s.mp4"), "output/out.mp4")
 
 def trimClip(pathToDir: str, fileName: str):
     stringData = splitStringData(pathToDir, fileName)
@@ -216,18 +225,15 @@ def trimClip(pathToDir: str, fileName: str):
     outputName = f"output/({order}) - {name}{fileExtension}"
 
     # check for valid times
-    if (time1 > time2): sys.exit(f"ERROR: Start time must be before the end time ({pathToDir+fileName})")
-    if (time2 > getClipLength(pathToDir+fileName)): sys.exit(f"ERROR: End time out of bounds ({pathToDir+fileName})")
+    if (time1 > time2): 
+        log(f"ERROR: Start time must be before the end time [{pathToDir+fileName}]")
+        sys.exit()
+    if (time2 > getClipLength(pathToDir+fileName)): 
+        log(f"ERROR: End time out of bounds [{pathToDir+fileName}]")
+        sys.exit()
 
     # perform trim
     trimClipOnParams(path, time1, time2, outputName)
-
-
-
-
-
-
-
 
 
 
@@ -246,10 +252,27 @@ def trimDirectory(pathToDir: str):
         trimClip(path, fileName)
 
 
+# combineClips
+# Combines two specified clips
+#
+def combineClips(pathToDir: str, fileName1: str, fileName2: str):
+    pass
 
 
 
 
+
+
+
+
+# bool for enforcing strict ordering (places 1,2,3,... for each clip)
+
+# order - NAME - time1-time2 
+# auto-splice consecutive clips
+
+# maintain order of folder automatically, otherwise user may specify ordering using (X)
+
+# or view video and specify times, name, but do this after auto-ordering
 
 #################################################
 #                                               #
@@ -257,10 +280,28 @@ def trimDirectory(pathToDir: str):
 #                                               #
 #################################################
 
-if (not os.path.isdir("output")):
-    os.mkdir("output")
+
+
+
+# Open log file if enabled
+#
+if enable_logging:
+    file = open("log.txt", "w")
+    file.write(str(datetime.now().strftime("%d/%m/%Y %H:%M:%S\n")))
+
+# Generate output directory
+#
+if (not os.path.isdir(outputDirectory)):
+    os.mkdir(outputDirectory)
 
 
 path = "TestVideos/"
   
 trimDirectory(path)
+
+
+
+
+
+# close file if open
+if enable_logging: file.close()
