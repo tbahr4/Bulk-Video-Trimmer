@@ -10,12 +10,12 @@ from os import listdir
 from os.path import isfile, join
 from datetime import datetime
 import tkinter as tk
+from tkinter import ttk
 from tkinter import filedialog
 import tkinter.messagebox as msgbox
 
 # Properties
 enable_logging = True
-outputDirectory = "output"
 
 
 
@@ -24,14 +24,20 @@ outputDirectory = "output"
 #
 def log(msg: str):
     if enable_logging: file.write(f"{msg}\n")
-    print(msg)
+    print(msg)                              # print to console 
+
+    # print to gui console
+    tOutput.configure(state="normal")
+    tOutput.insert(tk.END, f"{msg}\n")        
+    tOutput.configure(state="disabled")
+    tOutput.see(tk.END)
 
 # trimClipOnParams
 # Trims the clip at path 'filepath' between time1 and time2 seconds.
 # Stores in output with name 'outputName'
 #
 def trimClipOnParams(filepath: str, time1: float, time2: float, outputName: str):
-    log(f"Trimming file from {str(time1)} - {str(time2)} seconds [(]{filepath}]")
+    log(f"Trimming file from {str(round(time1, 2))} - {str(round(time2, 2))} seconds [{filepath}]")
     ffmpeg_extract_subclip(filepath, time1, time2, targetname=outputName)
 
 
@@ -78,7 +84,7 @@ def convertTime(timeString: str, filepath: str):
                 log(f"ERROR: invalid time format. 3 millisecond digits maximum [{filepath}]")
                 sys.exit()
 
-        time = datetime.datetime.strptime(timeString, fmt).time()
+        time = datetime.strptime(timeString, fmt).time()
         seconds = time.second + (time.minute * 60) + (time.hour * 60 * 60) + (time.microsecond / 1000000)
 
         return getClipLength(filepath) - seconds
@@ -100,7 +106,7 @@ def convertTime(timeString: str, filepath: str):
                 log(f"ERROR: invalid time format. 3 millisecond digits maximum [{filepath}]")
                 sys.exit()
 
-        time = datetime.datetime.strptime(timeString, fmt).time()
+        time = datetime.strptime(timeString, fmt).time()
         seconds = time.second + (time.minute * 60) + (time.hour * 60 * 60) + (time.microsecond / 1000000)
 
         return seconds
@@ -110,7 +116,7 @@ def convertTime(timeString: str, filepath: str):
     #
     else:
         log(f"ERROR: invalid time form [{filepath}]")
-        sys.exit()
+        raise Exception()
         
     
 # getClipLength
@@ -141,7 +147,7 @@ def splitStringData(pathToDir: str, fileName: str):
         fileName = fileName[:-len(fileExtension)]
         
         # extract between -'s
-        stringData = fileName.split("-")    
+        stringData = fileName.split("-")   
 
         # get ordering
         order = stringData[0][stringData[0].find('(') + 1 : stringData[0].find(')')]
@@ -161,6 +167,7 @@ def splitStringData(pathToDir: str, fileName: str):
         elif len(stringData) == 4:    # 2 times
             time1 = stringData[2][1:]
             time2 = stringData[3]
+
             
         else:                       # 1 time
             time1 = stringData[2][1:]
@@ -172,7 +179,7 @@ def splitStringData(pathToDir: str, fileName: str):
 
     except:
         log(f"ERROR: invalid file name format [{path}]")
-        sys.exit()
+        raise Exception()
 
 
 
@@ -215,8 +222,8 @@ def getTimes(time1, time2, filepath: str):
 
 
 
-def trimClip(pathToDir: str, fileName: str):
-    stringData = splitStringData(pathToDir, fileName)
+def trimClip(pathToSrcDir: str, fileName: str, pathToDestDir: str):
+    stringData = splitStringData(pathToSrcDir, fileName)
 
     # gather params
     path = stringData[0]
@@ -225,14 +232,14 @@ def trimClip(pathToDir: str, fileName: str):
     time1 = stringData[3]
     time2 = stringData[4]
     fileExtension = stringData[5]
-    outputName = f"output/({order}) - {name}{fileExtension}"
+    outputName = f"{pathToDestDir}/({order}) - {name}{fileExtension}"
 
     # check for valid times
     if (time1 > time2): 
-        log(f"ERROR: Start time must be before the end time [{pathToDir+fileName}]")
+        log(f"ERROR: Start time must be before the end time [{pathToSrcDir+fileName}]")
         sys.exit()
-    if (time2 > getClipLength(pathToDir+fileName)): 
-        log(f"ERROR: End time out of bounds [{pathToDir+fileName}]")
+    if (time2 > getClipLength(pathToSrcDir+fileName)): 
+        log(f"ERROR: End time out of bounds [{pathToSrcDir+fileName}]")
         sys.exit()
 
     # perform trim
@@ -250,16 +257,30 @@ def getFilePaths(dirPath: str):
 # trimDirectory
 # Trims all clips in specified directory
 #
-def trimDirectory(pathToDir: str):
-    for fileName in getFilePaths(path):
-        trimClip(path, fileName)
+def trimDirectory(pathToSrcDir: str, pathToDestDir: str):
+    global progressBar
+    
+    files = getFilePaths(pathToSrcDir)
+    fileCount = len(files)
+    currFile = 0
+
+    # Generate output directory - should not occur as directory is currently selected
+    #
+    if (not os.path.isdir(pathToDestDir)):
+        log(f"Generating output directory ({pathToDestDir})")
+        os.mkdir(pathToDestDir)
+
+    # for each filename, trim and update progress bar
+    for fileName in files:
+        trimClip(pathToSrcDir, fileName, pathToDestDir)
+
+        # done trimming, update progress bar
+        currFile += 1
+        progressBar.config(value=currFile/fileCount*100)
+        root.update_idletasks()         # force gui update
 
 
-# combineClips
-# Combines two specified clips
-#
-def combineClips(pathToDir: str, fileName1: str, fileName2: str):
-    pass
+
 
 
 
@@ -270,14 +291,24 @@ def combineClips(pathToDir: str, fileName1: str, fileName2: str):
 ###         TODO
 ###
 
+# multithreading? if it takes a while
+
 # bool for enforcing strict ordering (places 1,2,3,... for each clip)
 
 # order - NAME - time1-time2 
 # auto-splice consecutive clips
 
+# enable auto-ordering
+
 # maintain order of folder automatically, otherwise user may specify ordering using (X)
 
 # or view video and specify times, name, but do this after auto-ordering
+
+
+
+# check for valid format BEFORE continuing
+
+# tick for close when done
 
 #################################################
 #                                               #
@@ -289,19 +320,21 @@ def combineClips(pathToDir: str, fileName1: str, fileName2: str):
 # Open log file if enabled
 #
 if enable_logging:
-    file = open("log.txt", "w")
-    file.write(str(datetime.now().strftime("%d/%m/%Y %H:%M:%S\n")))
+    # Generate output directory - should not occur as directory is currently selected
+    #
+    if (not os.path.isdir("logs")):
+        os.mkdir("logs")
 
-# Generate output directory
-#
-if (not os.path.isdir(outputDirectory)):
-    os.mkdir(outputDirectory)
+    now = str(datetime.now().strftime("%d-%m-%Y %H_%M_%S"))
+    file = open(f"logs/log - {now}.txt", "w")
+    file.write(f"{now}\n")
+
+
 
 
 
 # init vars
 #
-path = None
 sourceDir = None
 destDir = None
 
@@ -314,17 +347,11 @@ root = tk.Tk()
 root.title("Video Trimmer")
 root.iconbitmap("images/logo.ico")     # set the window's logo
 
-root.geometry("400x300")
+root.geometry("400x281")
 root.resizable(width=False, height=False)
 
-#file_browser = tk.filedialog.askopenfilename(parent=root)
-
-#checkbox1 = tk.Checkbutton(root, text="Option 1")
-#checkbox2 = tk.Checkbutton(root, text="Option 2")
 
 
-#text1 = tk.Label(root, text="Enter text here:")
-#text2 = tk.Text(root, height=10, width=30)
 
 # define event handlers
 #
@@ -333,10 +360,51 @@ root.resizable(width=False, height=False)
 # Displays a help message tutorial
 #
 def bHelp_onClick():
-    msgbox.showinfo("Tutorial", "1. Rename all files to be trimmed to the proper file name format and place into a directory\n2. Designate the folder of clips to trim\n3. Designate the output directory for all of the clips\n4. Specify   \n\n\n TODO")
+    msgbox.showinfo("How to trim a clip", "To trim a list of clips, you must specify a valid file name format for every file in the directory.\n\nFORMAT:\n")
 
-def bExit_onClick():
-    sys.exit()
+
+def bStart_onClick(event):
+    try:
+        global sourceDir
+        global destDir
+        global progressBar
+
+        # disable input
+        bStart.configure(state="disabled")
+        bSetSource.configure(state="disabled")
+        bSetDest.configure(state="disabled")
+
+        # begin trim
+        log(f"Beginning directory trim [{sourceDir}]")
+        trimDirectory(f"{sourceDir}/", destDir)
+        log(f"Done.")
+
+        # re-enable input and reset fields
+        bSetSource.configure(state="normal")
+        bSetDest.configure(state="normal")
+
+        tSourceDir.configure(state="normal")
+        tSourceDir.delete("1.0", "end")
+        tSourceDir.configure(state="disabled")
+
+        tDestDir.configure(state="normal")
+        tDestDir.delete("1.0", "end")
+        tDestDir.configure(state="disabled")
+
+        # reset globals
+        sourceDir = None
+        destDir = None
+
+    except:
+        # fell out, keep dirs but reset buttons
+        bStart.configure(state="normal")
+        bSetSource.configure(state="normal")
+        bSetDest.configure(state="normal")
+        progressBar.config(value=0)
+        root.update_idletasks()         # force gui update
+
+        
+    
 
 
 # bSetDest_onClick
@@ -344,9 +412,11 @@ def bExit_onClick():
 #
 def bSetSource_onClick():
     global sourceDir
+    global destDir
 
     # get file directory
     directory_path = filedialog.askdirectory()
+    if directory_path == None or directory_path == "": return       # cancelled file select
     sourceDir = directory_path
 
     # update text box
@@ -355,14 +425,20 @@ def bSetSource_onClick():
     tSourceDir.insert("1.0", directory_path)
     tSourceDir.configure(state="disabled")
 
+    # update start button if both source and dest are filled
+    if sourceDir != None and destDir != None:
+        bStart.configure(state="normal")
+
 # bSetDest_onClick
 # Allows the user to select a destination directory
 #
 def bSetDest_onClick():
+    global sourceDir
     global destDir
 
     # get file directory
     directory_path = filedialog.askdirectory()
+    if directory_path == None or directory_path == "": return       # cancelled file select
     destDir = directory_path
 
     # update text box
@@ -371,6 +447,18 @@ def bSetDest_onClick():
     tDestDir.insert("1.0", directory_path)
     tDestDir.configure(state="disabled")
 
+    # update start button if both source and dest are filled
+    if sourceDir != None and destDir != None:
+        bStart.configure(state="normal")
+
+
+# onClose
+# Always runs on close
+#
+def onClose():
+    if enable_logging: file.close()
+    root.quit()
+root.protocol("WM_DELETE_WINDOW", onClose)
 
 
 # define elements
@@ -383,9 +471,7 @@ menu_bar.add_cascade(label="Menu", menu=file_menu)
 # add items to the drop-down menu
 file_menu.add_command(label="Help", command=bHelp_onClick)
 file_menu.add_separator()
-file_menu.add_command(label="Exit", command=bExit_onClick)
-
-
+file_menu.add_command(label="Exit", command=root.quit)
 
 tFileDisplay = tk.Label(root, text="Files", font=("Helvetica", 10))
 
@@ -398,16 +484,34 @@ tOutput = tk.Text(root, height=8, width=55, state="disabled", font=("Helvetica",
 tOutputText = tk.Label(root, text="Output", font=("Helvetica", 10))
 scrollbar = tk.Scrollbar(root)
 
-#file_browser.grid(row=0, column=0, sticky="w")
-#checkbox1.grid(row=1, column=0, sticky="w")
-#checkbox2.grid(row=2, column=0, sticky="w")
-#text1.grid(row=3, column=0, sticky="w")
-#text2.grid(row=4, column=0, sticky="w")
-#button2.grid(row=5, column=1, sticky="w")
+bStart = tk.Button(root, text="Start", width=7)
+bStart.bind("<ButtonRelease-1>", lambda event: bStart_onClick(event) if bStart["state"] == "active" else None)        # only fire event if within bounds of button
+
+progressBar = ttk.Progressbar(root, mode="determinate", maximum=100)
+progressBar.config(value=0)
 
 
 
 
+
+
+# styling for the progress bar
+style = ttk.Style()
+style.theme_create("style", parent="default", settings={
+    "TProgressbar": {
+        "configure": {
+            "background": "lime",
+            "troughcolor": "grey",
+            "borderwidth": 1,
+            "darkcolor": "red",
+            "lightcolor": "yellow",
+            "thickness": 2,
+            "relief": "groove"
+        }
+    }
+})
+# apply the new style to the progress bar
+style.theme_use("style")
 
 
 # setup layout
@@ -426,9 +530,18 @@ tOutput.grid(row=4, column=0, columnspan=2)
 tOutput.config(yscrollcommand=scrollbar.set)
 scrollbar.config(command=tOutput.yview)
 
+bStart.grid(row=5, column=0, columnspan=2, sticky="e")
+bStart.configure(state="disabled")
+
+progressBar.grid(row=6, column=0, columnspan=2, pady=1, sticky="we")
+
+
 # center the grid horizontally
 root.grid_columnconfigure(0, weight=1)
 root.grid_columnconfigure(1, weight=1)
+
+progressBar.config(value=0)
+
 
 
 
@@ -436,6 +549,3 @@ root.grid_columnconfigure(1, weight=1)
 root.mainloop()
 
 
-#################################################
-# close file if open
-if enable_logging: file.close()
