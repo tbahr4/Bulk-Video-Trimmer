@@ -308,6 +308,8 @@ def trimDirectory(pathToSrcDir: str, pathToDestDir: str):
 
 # check for valid format BEFORE continuing
 
+# give option to enable logs, or just always on
+
 # tick for close when done
 
 #################################################
@@ -360,7 +362,12 @@ root.resizable(width=False, height=False)
 # Displays a help message tutorial
 #
 def bHelp_onClick():
-    msgbox.showinfo("How to trim a clip", "To trim a list of clips, you must specify a valid file name format for every file in the directory.\n\nFORMAT:\n")
+    msgbox.showinfo("How to trim a clip", "To trim a list of clips, you must specify a valid file name format for every file in the directory.\n\nGENERAL FORMATS:\n(N) - Name - time1-time2\n(N) - Name - time1\n\nThe times are specific, though it allows many formats.\n\nAllowed times:\nThe following, when specified without a second time, will generate a clip starting at the specified time, but two times can be specified if needed.\nXh                      - Hours\nXm                     - Minutes\nXs                      - Seconds\nXms or XXXms  - Milliseconds\nOR any combination in that order:   XhXmXs\n\nIf 'e' is specified before any time (i.e. e10s), then the time acts in reverse and specifies the time at the end of the clip. \n\nstart        - Specifies the start of the original clip\nend         - Specifies the end of the original clip\n")
+
+
+
+
+
 
 
 def bStart_onClick(event):
