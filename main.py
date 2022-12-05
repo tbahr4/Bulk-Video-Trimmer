@@ -9,6 +9,9 @@ from contextlib import redirect_stdout
 from os import listdir
 from os.path import isfile, join
 from datetime import datetime
+import tkinter as tk
+from tkinter import filedialog
+import tkinter.messagebox as msgbox
 
 # Properties
 enable_logging = True
@@ -263,7 +266,9 @@ def combineClips(pathToDir: str, fileName1: str, fileName2: str):
 
 
 
-
+###
+###         TODO
+###
 
 # bool for enforcing strict ordering (places 1,2,3,... for each clip)
 
@@ -294,28 +299,141 @@ if (not os.path.isdir(outputDirectory)):
 
 
 
+# init vars
+#
+path = None
+sourceDir = None
+destDir = None
 
 
-path = "TestVideos/"
-  
-#trimDirectory(path)
+#
+# Display form
+#
+
+root = tk.Tk()
+root.title("Video Trimmer")
+root.iconbitmap("images/logo.ico")     # set the window's logo
+
+root.geometry("400x300")
+root.resizable(width=False, height=False)
+
+#file_browser = tk.filedialog.askopenfilename(parent=root)
+
+#checkbox1 = tk.Checkbutton(root, text="Option 1")
+#checkbox2 = tk.Checkbutton(root, text="Option 2")
+
+
+#text1 = tk.Label(root, text="Enter text here:")
+#text2 = tk.Text(root, height=10, width=30)
+
+# define event handlers
+#
+
+# bHelp_onClick
+# Displays a help message tutorial
+#
+def bHelp_onClick():
+    msgbox.showinfo("Tutorial", "1. Rename all files to be trimmed to the proper file name format and place into a directory\n2. Designate the folder of clips to trim\n3. Designate the output directory for all of the clips\n4. Specify   \n\n\n TODO")
+
+def bExit_onClick():
+    sys.exit()
+
+
+# bSetDest_onClick
+# Allows the user to select a source directory
+#
+def bSetSource_onClick():
+    global sourceDir
+
+    # get file directory
+    directory_path = filedialog.askdirectory()
+    sourceDir = directory_path
+
+    # update text box
+    tSourceDir.configure(state="normal")
+    tSourceDir.delete("1.0", "end")
+    tSourceDir.insert("1.0", directory_path)
+    tSourceDir.configure(state="disabled")
+
+# bSetDest_onClick
+# Allows the user to select a destination directory
+#
+def bSetDest_onClick():
+    global destDir
+
+    # get file directory
+    directory_path = filedialog.askdirectory()
+    destDir = directory_path
+
+    # update text box
+    tDestDir.configure(state="normal")
+    tDestDir.delete("1.0", "end")
+    tDestDir.insert("1.0", directory_path)
+    tDestDir.configure(state="disabled")
+
+
+
+# define elements
+
+# menu bar
+menu_bar = tk.Menu(root)
+root.config(menu=menu_bar)
+file_menu = tk.Menu(menu_bar, tearoff=0)
+menu_bar.add_cascade(label="Menu", menu=file_menu)
+# add items to the drop-down menu
+file_menu.add_command(label="Help", command=bHelp_onClick)
+file_menu.add_separator()
+file_menu.add_command(label="Exit", command=bExit_onClick)
+
+
+
+tFileDisplay = tk.Label(root, text="Files", font=("Helvetica", 10))
+
+bSetSource = tk.Button(root, width=20, text="Source Directory", command=bSetSource_onClick)
+bSetDest = tk.Button(root, width=20, text="Destination Directory", command=bSetDest_onClick)
+tSourceDir = tk.Text(root, height=1, width = 35, state="disabled", font=("Helvetica", 10), wrap="none")
+tDestDir = tk.Text(root, height=1, width = 35, state="disabled", font=("Helvetica", 10), wrap="none")
+
+tOutput = tk.Text(root, height=8, width=55, state="disabled", font=("Helvetica", 10), wrap="none")
+tOutputText = tk.Label(root, text="Output", font=("Helvetica", 10))
+scrollbar = tk.Scrollbar(root)
+
+#file_browser.grid(row=0, column=0, sticky="w")
+#checkbox1.grid(row=1, column=0, sticky="w")
+#checkbox2.grid(row=2, column=0, sticky="w")
+#text1.grid(row=3, column=0, sticky="w")
+#text2.grid(row=4, column=0, sticky="w")
+#button2.grid(row=5, column=1, sticky="w")
 
 
 
 
 
-from tkinter import *
-from tkinter import messagebox
-#Create an instance of Tkinter frame
-win= Tk()
-#Define the geometry of the function
-win.geometry("750x250")
-answer = messagebox.askyesno("Question","Do you like Python Tkinter?")
-#Create a Label
-Label(win, text=answer, font= ('Georgia 20 bold')).pack()
-win.mainloop()
+
+# setup layout
+
+tFileDisplay.grid(row=0, column=0, sticky="w")
+
+bSetSource.grid(row=1, column=0, sticky="w")
+bSetDest.grid(row=2, column=0, sticky="w")
+tSourceDir.grid(row=1, column=1, sticky="w")
+tDestDir.grid(row=2, column=1, sticky="w")
+
+tOutputText.grid(row=3, column=0, sticky="w")
+scrollbar.grid(row=4, column=1, sticky="nes")
+tOutput.grid(row=4, column=0, columnspan=2)
+# configure the output box to use the scrollbar
+tOutput.config(yscrollcommand=scrollbar.set)
+scrollbar.config(command=tOutput.yview)
+
+# center the grid horizontally
+root.grid_columnconfigure(0, weight=1)
+root.grid_columnconfigure(1, weight=1)
 
 
+
+
+root.mainloop()
 
 
 #################################################
