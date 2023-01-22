@@ -43,7 +43,7 @@ def trimClipOnParams(filepath: str, time1: float, time2: float, outputName: str,
     
     if muteAudio:
         ffmpeg_extract_subclip(filepath, time1, time2, targetname=f"temp.mp4")
-        log(f"Muting audio from {str(round(time1, 2))} - {str(round(time2, 2))} seconds [{filepath}]")
+        log(f"Muting audio[{filepath}]")
 
         import ffmpeg
         (
@@ -196,7 +196,7 @@ def splitStringData(pathToDir: str, fileName: str):
 
             
             
-        else:                       # 1 time
+        else:                         # 1 time
             # check if tags are provided
             splitTime = stringData[2][1:].split(" ")
             if len(splitTime) > 1:
@@ -213,7 +213,7 @@ def splitStringData(pathToDir: str, fileName: str):
         return path, order, name, t1, t2, isMuted, fileExtension
 
     except:
-        log(f"ERROR: invalid file name format [{path}]")
+        log(f"ERROR: invalid file name format {fileName} @ {pathToDir}")
         raise Exception()
 
 
@@ -256,8 +256,11 @@ def getTimes(time1, time2, filepath: str):
 
 
 
-
-def trimClip(pathToSrcDir: str, fileName: str, pathToDestDir: str):
+# trimClip
+# Gather parameters of clip and perform trim
+# May delay trim for pre-trim checks
+#
+def trimClip(pathToSrcDir: str, fileName: str, pathToDestDir: str, performTrim: bool):
     stringData = splitStringData(pathToSrcDir, fileName)
 
     # gather params
@@ -279,7 +282,8 @@ def trimClip(pathToSrcDir: str, fileName: str, pathToDestDir: str):
         sys.exit()
 
     # perform trim
-    trimClipOnParams(path, time1, time2, outputName, isMuted, fileExtension[::1])
+    if performTrim:
+        trimClipOnParams(path, time1, time2, outputName, isMuted, fileExtension[::1])
 
 
 
@@ -289,6 +293,14 @@ def trimClip(pathToSrcDir: str, fileName: str, pathToDestDir: str):
 def getFilePaths(dirPath: str):
     files = [file for file in listdir(dirPath) if isfile(join(dirPath, file))]
     return files
+
+# testFiles
+# Attempts pre-trim checks to be used before performing the full directory trim
+def testFiles(pathToSrcDir: str):
+    files = getFilePaths(pathToSrcDir)
+    # for each filename, check if trim would work
+    for fileName in files:
+        trimClip(pathToSrcDir, fileName, None, False)       # Attempt pre-trim checks
 
 # trimDirectory
 # Trims all clips in specified directory
@@ -308,7 +320,7 @@ def trimDirectory(pathToSrcDir: str, pathToDestDir: str):
 
     # for each filename, trim and update progress bar
     for fileName in files:
-        trimClip(pathToSrcDir, fileName, pathToDestDir)
+        trimClip(pathToSrcDir, fileName, pathToDestDir, True)
 
         # done trimming, update progress bar
         currFile += 1
@@ -416,6 +428,12 @@ def bStart_onClick(event):
         bStart.configure(state="disabled")
         bSetSource.configure(state="disabled")
         bSetDest.configure(state="disabled")
+
+        # check for bad files
+        log(f"Checking for bad files.")
+        root.update_idletasks()         # force gui update
+        testFiles(f"{sourceDir}/")
+        
 
         # begin trim
         log(f"Beginning directory trim [{sourceDir}]")
