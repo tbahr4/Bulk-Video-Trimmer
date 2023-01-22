@@ -193,6 +193,7 @@ def splitStringData(pathToDir: str, fileName: str):
             time1 = stringData[2][1:]
             time2 = splitTime[0]
 
+
             
             
         else:                       # 1 time
