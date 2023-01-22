@@ -1,4 +1,5 @@
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+from pydub import AudioSegment
 import json
 import subprocess
 import datetime
@@ -36,10 +37,25 @@ def log(msg: str):
 # Trims the clip at path 'filepath' between time1 and time2 seconds.
 # Stores in output with name 'outputName'
 #
-def trimClipOnParams(filepath: str, time1: float, time2: float, outputName: str):
-    log(f"Trimming file from {str(round(time1, 2))} - {str(round(time2, 2))} seconds [{filepath}]")
-    ffmpeg_extract_subclip(filepath, time1, time2, targetname=outputName)
 
+def trimClipOnParams(filepath: str, time1: float, time2: float, outputName: str, muteAudio: bool, fileExtension: str):
+    log(f"Trimming file from {str(round(time1, 2))} - {str(round(time2, 2))} seconds [{filepath}]")
+    
+    if muteAudio:
+        ffmpeg_extract_subclip(filepath, time1, time2, targetname=f"temp.mp4")
+        log(f"Muting audio from {str(round(time1, 2))} - {str(round(time2, 2))} seconds [{filepath}]")
+
+        import ffmpeg
+        (
+            ffmpeg
+            .input(f"temp.mp4")
+            .output(outputName, vcodec='copy', an=None)
+            .run()
+        )
+        os.remove(f"temp.mp4") # clean up
+
+    else:
+        ffmpeg_extract_subclip(filepath, time1, time2, targetname=outputName)
 
 # convertTime
 # Converts the given string into a proper time format
@@ -137,6 +153,8 @@ def getClipLength(filepath: str):
 #
 def splitStringData(pathToDir: str, fileName: str):
     try:
+        isMuted = False
+
         # save file dir
         path = pathToDir + fileName
         
@@ -165,17 +183,33 @@ def splitStringData(pathToDir: str, fileName: str):
             pass
 
         elif len(stringData) == 4:    # 2 times
+            # check if tags are provided
+            splitTime = stringData[3].split(" ")
+            if len(splitTime) > 1:
+                for i in range(1,len(splitTime)):
+                    if splitTime[i].lower() == "(mute)":
+                        isMuted = True
+
             time1 = stringData[2][1:]
-            time2 = stringData[3]
+            time2 = splitTime[0]
 
             
+            
         else:                       # 1 time
-            time1 = stringData[2][1:]
-        
+            # check if tags are provided
+            splitTime = stringData[2][1:].split(" ")
+            if len(splitTime) > 1:
+                for i in range(1,len(splitTime)):
+                    if splitTime[i].lower() == "(mute)":
+                        isMuted = True
+
+            time1 = splitTime[0]
+
+ 
         # done; return resulting strings
         #
         t1,t2 = getTimes(time1, time2, path)        # convert times to true time floats
-        return path, order, name, t1, t2, fileExtension
+        return path, order, name, t1, t2, isMuted, fileExtension
 
     except:
         log(f"ERROR: invalid file name format [{path}]")
@@ -231,7 +265,8 @@ def trimClip(pathToSrcDir: str, fileName: str, pathToDestDir: str):
     name = stringData[2]
     time1 = stringData[3]
     time2 = stringData[4]
-    fileExtension = stringData[5]
+    isMuted = stringData[5]
+    fileExtension = stringData[6]
     outputName = f"{pathToDestDir}/({order}) - {name}{fileExtension}"
 
     # check for valid times
@@ -243,7 +278,7 @@ def trimClip(pathToSrcDir: str, fileName: str, pathToDestDir: str):
         sys.exit()
 
     # perform trim
-    trimClipOnParams(path, time1, time2, outputName)
+    trimClipOnParams(path, time1, time2, outputName, isMuted, fileExtension[::1])
 
 
 
@@ -304,7 +339,7 @@ def trimDirectory(pathToSrcDir: str, pathToDestDir: str):
 
 # or view video and specify times, name, but do this after auto-ordering
 
-
+# more tags
 
 # check for valid format BEFORE continuing
 
@@ -552,7 +587,5 @@ progressBar.config(value=0)
 
 
 
-
 root.mainloop()
-
 
