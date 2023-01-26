@@ -293,10 +293,34 @@ def getFilePaths(dirPath: str):
     files = [file for file in listdir(dirPath) if isfile(join(dirPath, file))]
     return files
 
+# gatherFiles
+# Gathers all video file paths in the given directory
+# If specified, will evaluate subfolders
+#
+def gatherFiles(pathToSrcDir: str, evaluateSubfolders: bool):
+    files = []
+
+    if evaluateSubfolders:
+        files_and_folders = os.listdir(pathToSrcDir)
+        for item in files_and_folders:
+            itemPath = os.path.join(pathToSrcDir, item)
+            if os.isfile(itemPath):
+                files.append(itemPath)
+            elif os.path.isdir(itemPath):
+                files = files + gatherFiles(itemPath, evaluateSubfolders)
+            else:
+                log(f"ERROR: Unknown file at {pathToSrcDir}")
+    else:
+        files = getFilePaths(pathToSrcDir)
+
+    return files
+
 # testFiles
 # Attempts pre-trim checks to be used before performing the full directory trim
-def testFiles(pathToSrcDir: str):
-    files = getFilePaths(pathToSrcDir)
+def testFiles(pathToSrcDir: str, evaluateSubfolders: bool):
+    # gather all files
+    files = gatherFiles(pathToSrcDir, evaluateSubfolders)
+
     # for each filename, check if trim would work
     for fileName in files:
         trimClip(pathToSrcDir, fileName, None, False)       # Attempt pre-trim checks
@@ -304,10 +328,10 @@ def testFiles(pathToSrcDir: str):
 # trimDirectory
 # Trims all clips in specified directory
 #
-def trimDirectory(pathToSrcDir: str, pathToDestDir: str):
+def trimDirectory(pathToSrcDir: str, pathToDestDir: str, evaluateSubfolders: bool):
     global progressBar
     
-    files = getFilePaths(pathToSrcDir)
+    files = gatherFiles(pathToSrcDir,)
     fileCount = len(files)
     currFile = 0
 
@@ -431,12 +455,13 @@ def bStart_onClick(event):
         # check for bad files
         log(f"Checking for bad files.")
         root.update_idletasks()         # force gui update
-        testFiles(f"{sourceDir}/")
+        testFiles(f"{sourceDir}/", cbSubfolder.get())
+        
         
 
         # begin trim
         log(f"Beginning directory trim [{sourceDir}]")
-        trimDirectory(f"{sourceDir}/", destDir)
+        trimDirectory(f"{sourceDir}/", destDir, cbSubfolder.get())
         log(f"Done.")
 
         # re-enable input and reset fields
@@ -544,6 +569,7 @@ tOutput = tk.Text(root, height=8, width=55, state="disabled", font=("Helvetica",
 tOutputText = tk.Label(root, text="Output", font=("Helvetica", 10))
 scrollbar = tk.Scrollbar(root)
 
+cbSubfolder = tk.Checkbutton(root, text="Evaluate Subfolders")
 bStart = tk.Button(root, text="Start", width=7)
 bStart.bind("<ButtonRelease-1>", lambda event: bStart_onClick(event) if bStart["state"] == "active" else None)        # only fire event if within bounds of button
 
@@ -590,6 +616,7 @@ tOutput.grid(row=4, column=0, columnspan=2)
 tOutput.config(yscrollcommand=scrollbar.set)
 scrollbar.config(command=tOutput.yview)
 
+cbSubfolder.grid(row=5, column=0, columnspan=2, sticky="w")
 bStart.grid(row=5, column=0, columnspan=2, sticky="e")
 bStart.configure(state="disabled")
 
