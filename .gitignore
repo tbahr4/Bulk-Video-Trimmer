@@ -2,3 +2,5 @@
 /output
 /logs
 /old
+gui-test.py
+*.vscode
