@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog
 from enum import Enum
+import video
 
 class Scene(Enum):
     SCENE_INITIAL = 0
@@ -24,6 +25,10 @@ class MainApp(tk.Frame):
         # init scenes
         self.scene = None
         self.setScene(Scene.SCENE_INITIAL)
+
+        # data storage
+        self.srcFolder = None
+        self.destFolder = None
 
 
     def setScene(self, scene: Scene):
@@ -64,16 +69,16 @@ class InitialScene(tk.Frame):
         self.hasFolder2 = False
 
 
-    def signalFolderSelection(self, caller):
+    def signalFolderSelection(self, caller, folderPath: str):
         """
             Called by the folder selection objects to signal an update on folder selection
         """
         if caller == self.srcSelection:
             self.hasFolder1 = True
-            print("src call")
+            self.parent.srcFolder = folderPath
         elif caller == self.destSelection:
             self.hasFolder2 = True
-            print("dest call")
+            self.parent.destFolder = folderPath
 
         # update button
         self.beginButton.setEnabled(self.hasFolder1 and self.hasFolder2)
@@ -110,7 +115,8 @@ class FolderSelection(tk.Frame):
         self.tFolder.configure(state="disabled")
 
         # update scene if valid path
-        self.parent.signalFolderSelection(self)     # Signal true if path is non-empty
+        self.parent.signalFolderSelection(self, newPath)     # Signal true if path is non-empty
+        
 
 
 
@@ -142,9 +148,17 @@ class ClipScene(tk.Frame):
         self.parent = parent
 
         # instances
-        
+        self.tFilename = tk.Label(self, text="None")
+        self.tFileCount = tk.Label(self, text="0 of 0")
+        #self.vid = video.VideoPlayer(self, playOnOpen=True)
 
         # build
+        self.tFilename.grid(column=0, row=0)
+        self.tFileCount.grid(column=1, row=0)
+        #self.vid.grid(column=2,row=0)
+
+        #self.vid.openVideo("test.mp4")
+
         
 
 
@@ -163,5 +177,6 @@ if __name__ == "__main__":
 
     app = MainApp(root)
     app.pack(side="left")
+    app.setScene(Scene.SCENE_CLIPS)
 
     root.mainloop()
