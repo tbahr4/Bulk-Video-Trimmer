@@ -35,14 +35,14 @@ class VideoPlayer(tk.Frame):
         # init properties
         self.player.audio_set_volume(self.volume)
 
+        # progress bar
+        progressBarSize = 5
+        self.progressBar = ProgressBar(self, self.player, screenWidth, progressBarSize, '#383838', '#4287f5', 10)
         # buttons
         self.buttonFrame = tk.Frame(self)
         self.bPause = PauseButton(self.buttonFrame, self.player, size=25)
-        self.bSkipBackward = SkipButton(self.buttonFrame, self.player, pauseButton=self.bPause, isForwardSkip=False, size=25)
-        self.bSkipForward = SkipButton(self.buttonFrame, self.player, pauseButton=self.bPause, isForwardSkip=True, size=25)
-        # progress bar
-        progressBarSize = 5
-        self.progressBar = ProgressBar(self, self.player, screenWidth, progressBarSize, '#383838', '#4287f5')
+        self.bSkipBackward = SkipButton(self.buttonFrame, self.player, self.progressBar, pauseButton=self.bPause, isForwardSkip=False, size=25)
+        self.bSkipForward = SkipButton(self.buttonFrame, self.player, self.progressBar, pauseButton=self.bPause, isForwardSkip=True, size=25)
         # pack into frame
         self.bSkipBackward.grid(column=0, row=0, pady=progressBarSize*2)
         self.bPause.grid(column=1, row=0)
@@ -69,7 +69,8 @@ class VideoPlayer(tk.Frame):
         self.progressBar.place(x=0, y=self.screenHeight - self.progressBar.height)
     
     def onLeave_ProgressBar(self, event):
-        self.progressBar.place(x=0, y=self.screenHeight)
+        if not self.progressBar.isClicking and not self.progressBar.isHovering:
+            self.progressBar.place(x=0, y=self.screenHeight)
 
     def onKeyPress(self, event):
         key = event.keysym
@@ -117,12 +118,17 @@ class VideoPlayer(tk.Frame):
                 self.player.play()
                 self.bPause.setUnpaused()
                 self.player.set_position(max(0, duration-time))    
+                self.progressBar.setValue(max(0, duration-time)) # update bar
 
-        if newTime < 0: self.player.set_position(0)
+        if newTime < 0: 
+            self.player.set_position(0)
+            self.progressBar.setValue(0) # update bar
         elif newTime > duration: 
             self.player.set_position(max(0, (duration-100) / duration))    # skip to right before end of stream
+            self.progressBar.setValue(max(0, (duration-100) / duration)) # update bar
         else:
             self.player.set_time(newTime)
+            self.progressBar.setValue(newTime/duration) # update bar
 
 
     def openVideo(self, filepath: str):
@@ -175,13 +181,6 @@ class VideoPlayer(tk.Frame):
         # Schedule the next update
         self.after(10, self.scheduleUpdates)
     
-class ActionBar(tk.Frame):
-    """
-    
-    """
-    def __init__(self, parent, player, startPaused: bool = True, size: int = 50):
-        super().__init__(parent)
-
 class PauseButton(tk.Frame):
     """
         A visual pause button for the video player
@@ -225,11 +224,13 @@ class PauseButton(tk.Frame):
         self.isPaused = False
 
 class SkipButton(tk.Frame):
-    def __init__(self, parent, player, pauseButton: PauseButton, isForwardSkip: bool = True, size: int = 50):
+    def __init__(self, parent, player, progressBar, pauseButton: PauseButton, isForwardSkip: bool = True, size: int = 50):
         super().__init__(parent)
+        self.parent = parent
         self.player = player
         self.pauseButton = pauseButton
         self.isForwardSkip = isForwardSkip
+        self.progressBar = progressBar
 
         image = Image.open("images/skip-15.png" if isForwardSkip else "images/back-15.png")
         image.thumbnail((size, size))
@@ -243,7 +244,6 @@ class SkipButton(tk.Frame):
     def skip(self):
         newTime = self.player.get_time() + (15000 if self.isForwardSkip else -15000)
         duration = self.player.get_length()
-
         # do nothing if skipping on bounds
         if self.isForwardSkip == False and self.player.get_position() == 0: return
         if self.isForwardSkip and self.player.get_position() >= duration-100/duration: return
@@ -256,22 +256,31 @@ class SkipButton(tk.Frame):
                 self.player.play()
                 self.pauseButton.setUnpaused()
                 self.player.set_position(max(0, duration-15000))
+                self.progressBar.setValue(max(0, duration-15000)) # update bar
                 
 
-        if newTime < 0: self.player.set_position(0)
+        if newTime < 0: 
+            self.player.set_position(0)
+            self.progressBar.setValue(0) # update bar
         elif newTime > duration: 
             self.player.set_position(max(0, (duration-100) / duration))    # skip to right before end of stream
+            self.progressBar.setValue(max(0, (duration-100)/duration)) # update bar
         else:
             self.player.set_time(newTime)
+            self.progressBar.setValue(newTime/duration) # update bar
+        
+        
+        
 
 class ProgressBar(tk.Frame):
-    def __init__(self, parent, player, width: int, height: int, bg: str, fg: str):
+    def __init__(self, parent, player, width: int, height: int, bg: str, fg: str, cursorRadius: int):
         super().__init__(parent)  
         self.parent = parent
         self.width = width
         self.height = height
         self.player = player
         self.isHovering = False
+        self.isClicking = False
 
         # instances
         self.canvas = tk.Canvas(self, width=width, height=height, borderwidth=0, highlightthickness=0)
@@ -301,6 +310,7 @@ class ProgressBar(tk.Frame):
         self.player.set_position(percent)
 
     def onClick(self, event):
+        self.isClicking = True
         self.lastClick_PauseState = self.parent.bPause.isPaused
 
         x = event.x - self.canvas.canvasx(0)
@@ -320,10 +330,25 @@ class ProgressBar(tk.Frame):
             self.parent.bPause.setPaused()
 
     def onUnclick(self, event):
+
+        self.isClicking = False
         if not self.lastClick_PauseState:   # if unpaused on click
             self.player.play()
             self.parent.bPause.setUnpaused()
         self.lastClick_PauseState = None
+
+        # update bar size
+        if not self.isHovering:
+            # update canvas size
+            self.canvas.config(height=self.height)
+            # update bar size
+            x1, y1, x2, y2 = self.canvas.coords(self.backBar)
+            self.canvas.coords(self.backBar, 0, 0, x2, self.height)
+            x1, y1, x2, y2 = self.canvas.coords(self.progressBar)
+            self.canvas.coords(self.progressBar, 0, 0, x2, self.height)  
+
+        # call other update function
+        self.parent.onLeave_ProgressBar(event=None)
 
     def onHover(self, event):
         self.isHovering = True
@@ -337,13 +362,15 @@ class ProgressBar(tk.Frame):
 
     def onLeave(self, event):
         self.isHovering = False
-        # update canvas size
-        self.canvas.config(height=self.height)
-        # update bar size
-        x1, y1, x2, y2 = self.canvas.coords(self.backBar)
-        self.canvas.coords(self.backBar, 0, 0, x2, self.height)
-        x1, y1, x2, y2 = self.canvas.coords(self.progressBar)
-        self.canvas.coords(self.progressBar, 0, 0, x2, self.height)  
+
+        if not self.isClicking:
+            # update canvas size
+            self.canvas.config(height=self.height)
+            # update bar size
+            x1, y1, x2, y2 = self.canvas.coords(self.backBar)
+            self.canvas.coords(self.backBar, 0, 0, x2, self.height)
+            x1, y1, x2, y2 = self.canvas.coords(self.progressBar)
+            self.canvas.coords(self.progressBar, 0, 0, x2, self.height)  
 
     def setValue(self, value: float):
         """
@@ -352,8 +379,8 @@ class ProgressBar(tk.Frame):
             Params:
             value: number between 0 and 1
         """
-        self.canvas.coords(self.backBar, 0, 0, self.width, self.height * (2 if self.isHovering else 1))
-        self.canvas.coords(self.progressBar, 0, 0, int(value * self.width), self.height * (2 if self.isHovering else 1))
+        self.canvas.coords(self.backBar, 0, 0, self.width, self.height * (2 if self.isHovering or self.isClicking else 1))
+        self.canvas.coords(self.progressBar, 0, 0, int(value * self.width), self.height * (2 if self.isHovering or self.isClicking else 1))
 
 
 
