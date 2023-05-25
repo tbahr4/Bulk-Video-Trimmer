@@ -40,13 +40,15 @@ class VideoPlayer(tk.Frame):
         self.bPause = PauseButton(self.buttonFrame, self.player, size=25)
         self.bSkipBackward = SkipButton(self.buttonFrame, self.player, pauseButton=self.bPause, isForwardSkip=False, size=25)
         self.bSkipForward = SkipButton(self.buttonFrame, self.player, pauseButton=self.bPause, isForwardSkip=True, size=25)
-        # pack into frame
-        self.bSkipBackward.grid(column=0, row=0)
-        self.bPause.grid(column=1, row=0)
-        self.bSkipForward.grid(column=2, row=0)
-
         # progress bar
-        self.progressBar = ProgressBar(self, self.player, screenWidth, 5, '#383838', '#4287f5')
+        progressBarSize = 5
+        self.progressBar = ProgressBar(self, self.player, screenWidth, progressBarSize, '#383838', '#4287f5')
+        # pack into frame
+        self.bSkipBackward.grid(column=0, row=0, pady=progressBarSize*2)
+        self.bPause.grid(column=1, row=0)
+        self.bSkipForward.grid(column=2, row=0, pady=progressBarSize*2)
+
+        
 
         # init canvas
         width, height = self.player.video_get_size(0)
@@ -54,11 +56,20 @@ class VideoPlayer(tk.Frame):
         
         # display elements
         self.canvas.pack()
-        self.progressBar.pack()
+        self.progressBar.place(x=0, y=screenHeight)
         self.buttonFrame.pack()
+        self.progressBar.lift()
 
         # add listener for events
         root.bind("<KeyPress>", self.onKeyPress)
+        self.progressBar.bind("<Enter>", self.onHover_ProgressBar)
+        self.progressBar.bind("<Leave>", self.onLeave_ProgressBar)
+
+    def onHover_ProgressBar(self, event):
+        self.progressBar.place(x=0, y=self.screenHeight - self.progressBar.height)
+    
+    def onLeave_ProgressBar(self, event):
+        self.progressBar.place(x=0, y=self.screenHeight)
 
     def onKeyPress(self, event):
         key = event.keysym
@@ -164,6 +175,13 @@ class VideoPlayer(tk.Frame):
         # Schedule the next update
         self.after(10, self.scheduleUpdates)
     
+class ActionBar(tk.Frame):
+    """
+    
+    """
+    def __init__(self, parent, player, startPaused: bool = True, size: int = 50):
+        super().__init__(parent)
+
 class PauseButton(tk.Frame):
     """
         A visual pause button for the video player
@@ -256,7 +274,7 @@ class ProgressBar(tk.Frame):
         self.isHovering = False
 
         # instances
-        self.canvas = tk.Canvas(self, width=width, height=height*2, borderwidth=0, highlightthickness=0)
+        self.canvas = tk.Canvas(self, width=width, height=height, borderwidth=0, highlightthickness=0)
         self.backBar = self.canvas.create_rectangle(0, 0, self.width, self.height, fill=bg, width=0)
         self.progressBar = self.canvas.create_rectangle(0, 0, 0, self.height, fill=fg, outline='')
 
@@ -309,6 +327,8 @@ class ProgressBar(tk.Frame):
 
     def onHover(self, event):
         self.isHovering = True
+        # update canvas size
+        self.canvas.config(height=self.height*2)
         # update bar size
         x1, y1, x2, y2 = self.canvas.coords(self.backBar)
         self.canvas.coords(self.backBar, 0, 0, x2, self.height * 2)
@@ -317,12 +337,13 @@ class ProgressBar(tk.Frame):
 
     def onLeave(self, event):
         self.isHovering = False
+        # update canvas size
+        self.canvas.config(height=self.height)
         # update bar size
         x1, y1, x2, y2 = self.canvas.coords(self.backBar)
         self.canvas.coords(self.backBar, 0, 0, x2, self.height)
         x1, y1, x2, y2 = self.canvas.coords(self.progressBar)
-        self.canvas.coords(self.progressBar, 0, 0, x2, self.height)
-        
+        self.canvas.coords(self.progressBar, 0, 0, x2, self.height)  
 
     def setValue(self, value: float):
         """
