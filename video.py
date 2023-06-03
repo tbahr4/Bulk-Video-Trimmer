@@ -12,7 +12,7 @@ WINDOW_WIDTH = 1024
 
 
 class VideoPlayer(tk.Frame):
-    def __init__(self, parent, screenWidth: int = None, screenHeight: int = None, playOnOpen: bool = False):
+    def __init__(self, parent, screenWidth: int, screenHeight: int, playOnOpen: bool):
         """
             Params:
             screenWidth: the width of the video screen
@@ -36,29 +36,25 @@ class VideoPlayer(tk.Frame):
         self.player.audio_set_volume(self.volume)
 
         # progress bar
-        progressBarSize = 5
-        self.progressBar = ProgressBar(self, self.player, screenWidth, progressBarSize, '#383838', '#4287f5', 10)
+        progressBarHeight = 5
+        self.progressBar = ProgressBar(self, self.player, width=screenWidth, height=progressBarHeight, bg='#383838', fg='#4287f5', cursorRadius=10)
         # buttons
-        self.buttonFrame = tk.Frame(self)
-        self.bPause = PauseButton(self.buttonFrame, self.player, size=25)
-        self.bSkipBackward = SkipButton(self.buttonFrame, self.player, self.progressBar, pauseButton=self.bPause, isForwardSkip=False, size=25)
-        self.bSkipForward = SkipButton(self.buttonFrame, self.player, self.progressBar, pauseButton=self.bPause, isForwardSkip=True, size=25)
-        # pack into frame
-        self.bSkipBackward.grid(column=0, row=0, pady=progressBarSize*2)
-        self.bPause.grid(column=1, row=0)
-        self.bSkipForward.grid(column=2, row=0, pady=progressBarSize*2)
+        self.actionBar = ActionBar(self, self.player, 25, self.progressBar, progressBarHeight)
+        self.bPause = self.actionBar.bPause
 
         
 
         # init canvas
         width, height = self.player.video_get_size(0)
-        self.canvas = tk.Canvas(self, width=screenWidth if self.screenWidth is not None else 300, height=self.screenHeight if self.screenHeight is not None else 300, bg='black', borderwidth=0, highlightthickness=0)
+        self.canvas = tk.Canvas(self, width=screenWidth, height=self.screenHeight, bg='black', borderwidth=0, highlightthickness=0)
         
+
         # display elements
         self.canvas.pack()
         self.progressBar.place(x=0, y=screenHeight)
-        self.buttonFrame.pack()
+        self.actionBar.place(x=5, y=screenHeight)
         self.progressBar.lift()
+        self.bg = self.canvas.create_rectangle(0,0, WINDOW_WIDTH, WINDOW_HEIGHT, fill="orange", outline="")
 
         # add listener for events
         root.bind("<KeyPress>", self.onKeyPress)
@@ -180,7 +176,60 @@ class VideoPlayer(tk.Frame):
 
         # Schedule the next update
         self.after(10, self.scheduleUpdates)
-    
+
+
+class ActionBar(tk.Frame):
+    """
+        A frame of buttons used to control the video player
+    """
+    def __init__(self, parent, player, buttonSize: int, progressBar, progressBarHeight: int):
+        super().__init__(parent, bg="black")
+        self.parent = parent
+        self.player = player
+        self.buttonSize = buttonSize
+        self.progressBar = progressBar
+        padX = 5
+
+        # init elements
+        self.bPause = PauseButton(self, self.player, size=buttonSize)
+        self.bSkipBackward = SkipButton(self, self.player, self.progressBar, pauseButton=self.bPause, isForwardSkip=False, size=buttonSize)
+        self.bSkipForward = SkipButton(self, self.player, self.progressBar, pauseButton=self.bPause, isForwardSkip=True, size=buttonSize)
+        self.bVolume = VolumeButton(self, defaultVolume=50, size=buttonSize)
+
+        # display
+        self.bPause.grid(column=0, row=0, padx=padX, pady=progressBarHeight*2)
+        self.bSkipBackward.grid(column=1, row=0, padx=padX)
+        self.bSkipForward.grid(column=2, row=0, padx=padX)
+        self.bVolume.grid(column=3, row=0, padx=padX)
+
+        self.after(100, self.retrieve_coordinates)
+
+    def retrieve_coordinates(self):
+        # Print coordinates of the PauseButton relative to the root window
+        print("PauseButton Coordinates:", self.bPause.winfo_x(), self.bPause.winfo_y())
+
+
+
+class VolumeButton(tk.Frame):
+    """
+        A volume button for muting and changing output volume
+    """
+    def __init__(self, parent, defaultVolume: int, size: int = 50):
+        super().__init__(parent)
+        self.volume = defaultVolume
+
+        image = Image.open("images/volume.png")
+        image.thumbnail((size, size))
+        self.image = ImageTk.PhotoImage(image)
+
+        self.bVolume = tk.Button(self, width=size, command=self.toggleMute, image=self.image, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
+
+        self.bVolume.pack()
+
+    def toggleMute(self):
+        pass
+
+
 class PauseButton(tk.Frame):
     """
         A visual pause button for the video player
@@ -197,7 +246,7 @@ class PauseButton(tk.Frame):
         self.playImage = ImageTk.PhotoImage(imPlay)
         self.pauseImage = ImageTk.PhotoImage(imPause)
 
-        self.bPause = tk.Button(self, width=size, command=self.togglePause, image=self.playImage if startPaused else self.pauseImage, borderwidth=0, highlightthickness=0)
+        self.bPause = tk.Button(self, width=size, command=self.togglePause, image=self.playImage if startPaused else self.pauseImage, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
         self.bPause.image = self.playImage if startPaused else self.pauseImage
 
         self.bPause.pack()
@@ -236,7 +285,7 @@ class SkipButton(tk.Frame):
         image.thumbnail((size, size))
         self.image = ImageTk.PhotoImage(image)
 
-        self.button = tk.Button(self, width=50, command=self.skip, image=self.image, borderwidth=0, highlightthickness=0)
+        self.button = tk.Button(self, width=size, command=self.skip, image=self.image, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
         self.button.image = self.image
 
         self.button.pack()
@@ -391,7 +440,7 @@ if __name__ == "__main__":
     root.resizable(width=False, height=False)
 
     video = VideoPlayer(root, screenWidth=WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False)
-    video.pack()
+    video.place(x=0,y=0, width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
 
 
     video.openVideo("test-long.mp4")

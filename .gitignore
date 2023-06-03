@@ -6,3 +6,4 @@ gui-test.py
 *.vscode
 *.mp4
 /__pycache__
+/images/inv
