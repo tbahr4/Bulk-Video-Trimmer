@@ -36,21 +36,19 @@ class VideoPlayer(tk.Frame):
         
         # init properties
         self.player.audio_set_volume(self.volume)
-
         # progress bar
         progressBarHeight = 5
         self.progressBar = ProgressBar(self, self.player, width=screenWidth, height=progressBarHeight, bg='#383838', fg='#4287f5')
         # buttons
         padX = 5
         self.volumeBar = VolumeBar(self, player=self.player, defaultVolume=50, width=19, height=50)
-        self.actionBar = ActionBar(self, self.player, buttonSize=25, progressBar=self.progressBar, volumeBar=self.volumeBar, progressBarHeight=progressBarHeight, padX=padX)
+        buttonSize = 25
+        self.actionBar = ActionBar(self, self.player, buttonSize=buttonSize, progressBar=self.progressBar, volumeBar=self.volumeBar, progressBarHeight=progressBarHeight, padX=padX)
+        self.bFullscreen = FullscreenButton(self, root=root, size=buttonSize)
         self.bPause = self.actionBar.bPause
         # background
         self.background = tk.Canvas(self, width=WINDOW_WIDTH, height=screenHeight+backgroundHeight, bg='black', borderwidth=0, highlightthickness=0)
         
-
-        
-
         # init canvas
         width, height = self.player.video_get_size(0)
         self.canvas = tk.Canvas(self, width=screenWidth, height=self.screenHeight, bg='black', borderwidth=0, highlightthickness=0)
@@ -63,7 +61,9 @@ class VideoPlayer(tk.Frame):
         self.actionBar.place(x=5, y=screenHeight+(progressBarHeight*2))
         root.update()  # update to get positions of button widgets 
         self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + 8, y=screenHeight - 55, width=self.volumeBar.width, height=self.volumeBar.height)
+        self.bFullscreen.place(x=WINDOW_WIDTH-5-buttonSize, y=screenHeight+(progressBarHeight*2))
         self.actionBar.lift()
+        self.bFullscreen.lift()
         self.progressBar.lift()
         self.volumeBar.lift()
         
@@ -238,14 +238,12 @@ class ActionBar(tk.Frame):
         self.bSkipBackward = SkipButton(self, self.player, self.progressBar, pauseButton=self.bPause, isForwardSkip=False, size=buttonSize)
         self.bSkipForward = SkipButton(self, self.player, self.progressBar, pauseButton=self.bPause, isForwardSkip=True, size=buttonSize)
         self.bVolume = VolumeButton(self, player=self.player, volumeBar=self.volumeBar, defaultVolume=50, size=buttonSize)
-        self.bFullscreen = FullscreenButton(self, root=root, size=buttonSize)
 
         # display
         self.bPause.grid(column=0, row=0, padx=padX)
         self.bSkipBackward.grid(column=1, row=0, padx=padX)
         self.bSkipForward.grid(column=2, row=0, padx=padX)
         self.bVolume.grid(column=3, row=0, padx=padX)
-        self.bFullscreen.grid(column=4, row=0, padx=padX)
 
 
 class FullscreenButton(tk.Frame):
