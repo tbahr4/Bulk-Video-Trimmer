@@ -98,7 +98,6 @@ class VideoPlayer(tk.Frame):
             self.actionBar.bVolume.unmute()
             self.volumeBar.setValue(self.volume)
             self.lastVolumeChange = time.time()
-
         elif key == "Down":
             self.volume = max(0, self.volume - 5)
             self.player.audio_set_volume(self.volume)
@@ -116,6 +115,19 @@ class VideoPlayer(tk.Frame):
                 fps = self.player.get_fps()
                 duration = int(1000 / fps)       # number of ms per frame
                 self.seek(-duration)
+        elif key == "m":
+            self.actionBar.bVolume.toggleMute()
+        elif key == "f":
+            self.bFullscreen.toggleFullscreen()
+        elif key == "Home":
+            self.player.set_time(0)
+        elif key == "End":
+            self.player.set_time(max(0, self.player.get_length() - 20000))
+        elif key in [str(val) for val in range(0,10)]:
+            percent = int(key) / 10
+            self.player.set_time(float(self.player.get_length() * percent))
+
+        
     
     def seek(self, time):
         """
@@ -144,8 +156,8 @@ class VideoPlayer(tk.Frame):
             self.player.set_position(0)
             self.progressBar.setValue(0) # update bar
         elif newTime > duration: 
-            self.player.set_position(max(0, (duration-100) / duration))    # skip to right before end of stream
-            self.progressBar.setValue(max(0, (duration-100) / duration)) # update bar
+            self.player.set_position(duration)    # skip to right before end of stream
+            self.progressBar.setValue(duration) # update bar
         else:
             self.player.set_time(newTime)
             self.progressBar.setValue(newTime/duration) # update bar
@@ -195,8 +207,8 @@ class VideoPlayer(tk.Frame):
             self.bPause.setPaused()
 
         # update progress bar
-        if position != 0:       # do not update on restart video
-            self.progressBar.setValue(1 if playState == vlc.State.Ended else position)
+        #if position != 0:       # do not update on restart video
+        self.progressBar.setValue(1 if playState == vlc.State.Ended else position)
 
         # update last hover time if currently hovering
         if self.volumeBar.isHovering:
@@ -549,8 +561,8 @@ class SkipButton(tk.Frame):
             self.player.set_position(0)
             self.progressBar.setValue(0) # update bar
         elif newTime > duration: 
-            self.player.set_position(max(0, (duration-100) / duration))    # skip to right before end of stream
-            self.progressBar.setValue(max(0, (duration-100)/duration)) # update bar
+            self.player.set_position(duration)    # skip to right before end of stream
+            self.progressBar.setValue(duration) # update bar
         else:
             self.player.set_time(newTime)
             self.progressBar.setValue(newTime/duration) # update bar
@@ -681,7 +693,7 @@ if __name__ == "__main__":
     video.place(x=0,y=0, width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
 
 
-    video.openVideo("test-2hr.mp4")
+    video.openVideo("test-long.mp4")
 
     updater = threading.Thread(target=video.scheduleUpdates)
     updater.start()
