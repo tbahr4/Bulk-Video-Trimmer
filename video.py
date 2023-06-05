@@ -217,6 +217,10 @@ class VideoPlayer(tk.Frame):
             self.isVolumeBarVisible = False
             self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + 8, y=self.screenHeight - 55, width=0, height=0)
 
+        # update playback timer
+        self.actionBar.playbackTimer.setTime(self.player.get_time() / 1000)
+        self.actionBar.playbackTimer.setDuration(self.player.get_length() / 1000)
+
         # Schedule the next update
         self.after(10, self.scheduleUpdates)
 
@@ -238,12 +242,61 @@ class ActionBar(tk.Frame):
         self.bSkipBackward = SkipButton(self, self.player, self.progressBar, pauseButton=self.bPause, isForwardSkip=False, size=buttonSize)
         self.bSkipForward = SkipButton(self, self.player, self.progressBar, pauseButton=self.bPause, isForwardSkip=True, size=buttonSize)
         self.bVolume = VolumeButton(self, player=self.player, volumeBar=self.volumeBar, defaultVolume=50, size=buttonSize)
+        self.playbackTimer = PlaybackTimer(self, player=self.player)
 
         # display
         self.bPause.grid(column=0, row=0, padx=padX)
         self.bSkipBackward.grid(column=1, row=0, padx=padX)
         self.bSkipForward.grid(column=2, row=0, padx=padX)
         self.bVolume.grid(column=3, row=0, padx=padX)
+        self.playbackTimer.grid(column=4, row=0, padx=padX)
+
+
+class PlaybackTimer(tk.Frame):
+    """
+        A test display of the current time
+    """
+    def __init__(self, parent, player):
+        super().__init__(parent)
+        self.player = player
+        self.time = 0,0,0
+        self.duration = 0,0,0
+
+        self.text = tk.Label(self, text="0:00 / 0:00", fg="white", bg="black", font=("Roboto", 9))
+        self.text.pack()
+        
+
+    def setTime(self, seconds: int):
+        self.time = self._convertTime(seconds)
+        self.text.config(text=self._getTimeText())
+
+    def setDuration(self, seconds: int):
+        self.duration = self._convertTime(seconds)
+        self.text.config(text=self._getTimeText())
+
+    def _convertTime(self, seconds: int):
+        h = int(seconds // 3600)
+        m = int((seconds % 3600) // 60)
+        s = int(seconds % 60)
+        return h,m,s
+    
+    def _getTimeText(self):
+        """
+            Returns the text that represents the playback time based on current values
+        """
+        # time
+        hTime = f"{self.time[0]}:" if self.time[0] != 0 else ""
+        mTime = f"{self.time[1]}:" if len(str(self.time[1])) == 2 or (len(str(self.time[1])) == 1 and self.time[0] == 0) else f"0{self.time[1]}:"
+        sTime = f"{self.time[2]}" if len(str(self.time[2])) == 2 else f"0{self.time[2]}"
+        time = f"{hTime}{mTime}{sTime}"
+
+        # duration
+        hDuration = f"{self.duration[0]}:" if self.duration[0] != 0 else ""
+        mDuration = f"{self.duration[1]}:" if len(str(self.duration[1])) == 2 or (len(str(self.duration[1])) == 1 and self.duration[0] == 0) else f"0{self.duration[1]}:"
+        sDuration = f"{self.duration[2]}" if len(str(self.duration[2])) == 2 else f"0{self.duration[2]}"
+        duration = f"{hDuration}{mDuration}{sDuration}"
+
+        return f"{time} / {duration}"
 
 
 class FullscreenButton(tk.Frame):
@@ -514,9 +567,10 @@ class ProgressBar(tk.Frame):
         self.player = player
         self.isHovering = False
         self.isClicking = False
+        self.lastClick_PauseState = None
 
         # instances
-        self.canvas = tk.Canvas(self, width=width, height=height, borderwidth=0, highlightthickness=0)
+        self.canvas = tk.Canvas(self, width=width, height=height, borderwidth=0, highlightthickness=0, bg=bg)
         self.backBar = self.canvas.create_rectangle(0, 0, self.width, self.height, fill=bg, width=0)
         self.progressBar = self.canvas.create_rectangle(0, 0, 0, self.height, fill=fg, outline='')
 
@@ -585,13 +639,13 @@ class ProgressBar(tk.Frame):
 
     def onHover(self, event):
         self.isHovering = True
-        # update canvas size
-        self.canvas.config(height=self.height*2)
         # update bar size
         x1, y1, x2, y2 = self.canvas.coords(self.backBar)
         self.canvas.coords(self.backBar, 0, 0, x2, self.height * 2)
         x1, y1, x2, y2 = self.canvas.coords(self.progressBar)
         self.canvas.coords(self.progressBar, 0, 0, x2, self.height * 2)
+        # update canvas size
+        self.canvas.config(height=self.height*2)
 
     def onLeave(self, event):
         self.isHovering = False
@@ -627,7 +681,7 @@ if __name__ == "__main__":
     video.place(x=0,y=0, width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
 
 
-    video.openVideo("test-long.mp4")
+    video.openVideo("test-2hr.mp4")
 
     updater = threading.Thread(target=video.scheduleUpdates)
     updater.start()
