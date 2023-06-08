@@ -26,6 +26,8 @@ class VideoPlayer(tk.Frame):
         self.lastEndStateTime = 0
         self.timeToUpdateEndState = 1
         self.duration = 0
+        self.fullscreenScaleX = root.winfo_screenwidth() / WINDOW_WIDTH
+        self.fullscreenScaleY = root.winfo_screenheight() / WINDOW_HEIGHT
 
         # properties
         self.playOnOpen = playOnOpen
@@ -40,31 +42,30 @@ class VideoPlayer(tk.Frame):
         # init properties
         self.player.audio_set_volume(self.volume)
         # progress bar
-        progressBarHeight = 5
-        self.progressBar = ProgressBar(self, self.player, width=screenWidth, height=progressBarHeight, bg='#383838', fg='#4287f5')
+        self.progressBarHeight = 5
+        self.progressBar = ProgressBar(self, self.player, width=screenWidth, height=self.progressBarHeight, bg='#383838', fg='#4287f5')
         # buttons
         padX = 5
         self.volumeBar = VolumeBar(self, player=self.player, defaultVolume=50, width=19, height=50)
-        buttonSize = 25
-        self.actionBar = ActionBar(self, self.player, buttonSize=buttonSize, progressBar=self.progressBar, volumeBar=self.volumeBar, progressBarHeight=progressBarHeight, padX=padX)
-        self.bFullscreen = FullscreenButton(self, root=root, size=buttonSize)
+        self.buttonSize = 25
+        self.actionBar = ActionBar(self, self.player, buttonSize=self.buttonSize, progressBar=self.progressBar, volumeBar=self.volumeBar, progressBarHeight=self.progressBarHeight, padX=padX)
         self.bPause = self.actionBar.bPause
         # background
         self.background = tk.Canvas(self, width=WINDOW_WIDTH, height=screenHeight+backgroundHeight, bg='black', borderwidth=0, highlightthickness=0)
-        
         # init canvas
         width, height = self.player.video_get_size(0)
         self.canvas = tk.Canvas(self, width=screenWidth, height=self.screenHeight, bg='black', borderwidth=0, highlightthickness=0)
-        
+        # fullscreen button, initialized with a list of all widgets to be resized
+        self.bFullscreen = FullscreenButton(self, root=root, size=self.buttonSize)
 
         # display elements
         self.background.place(x=0, y=0)
-        self.canvas.pack()
+        self.canvas.place(x=0,y=0)
         self.progressBar.place(x=0, y=screenHeight)
-        self.actionBar.place(x=5, y=screenHeight+(progressBarHeight*2))
+        self.actionBar.place(x=5, y=screenHeight+(self.progressBarHeight*2))
         root.update()  # update to get positions of button widgets 
         self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + 8, y=screenHeight - 55, width=self.volumeBar.width, height=self.volumeBar.height)
-        self.bFullscreen.place(x=WINDOW_WIDTH-5-buttonSize, y=screenHeight+(progressBarHeight*2))
+        self.bFullscreen.place(x=WINDOW_WIDTH-5-self.buttonSize, y=screenHeight+(self.progressBarHeight*2))
         self.actionBar.lift()
         self.bFullscreen.lift()
         self.progressBar.lift()
@@ -76,15 +77,12 @@ class VideoPlayer(tk.Frame):
         self.progressBar.bind("<Enter>", self.onHover_ProgressBar)
         self.progressBar.bind("<Leave>", self.onLeave_ProgressBar)
 
-    def toggleFullscreen(self):
-        self.parent.attributes("-fullscreen", not self.parent.attributes("-fullscreen"))
-
     def onHover_ProgressBar(self, event):
-        self.progressBar.place(x=0, y=self.screenHeight - self.progressBar.height)
+        self.progressBar.place(x=0, y=self.screenHeight * (self.fullscreenScaleY if self.bFullscreen.isFullscreen else 1) - self.progressBar.height)
     
     def onLeave_ProgressBar(self, event):
         if not self.progressBar.isClicking and not self.progressBar.isHovering:
-            self.progressBar.place(x=0, y=self.screenHeight)
+            self.progressBar.place(x=0, y=self.screenHeight * (self.fullscreenScaleY if self.bFullscreen.isFullscreen else 1))
 
     def onKeyPress(self, event):
         key = event.keysym
@@ -244,6 +242,10 @@ class VideoPlayer(tk.Frame):
         self.bPause.setPaused()
 
     def scheduleUpdates(self):
+        updater = threading.Thread(target=self._update)
+        updater.start()
+
+    def _update(self):
         """
             Initializes constant updates to elements over an interval
         """
@@ -278,12 +280,11 @@ class VideoPlayer(tk.Frame):
         timeSinceLastVolHover = time.time() - max(self.volumeBar.lastVolumeHover, self.actionBar.bVolume.lastVolumeHover)
 
         if (timeSinceLastVolHover < 1 or timeSinceLastVolChange < 1):
-            if not self.isVolumeBarVisible:
-                self.isVolumeBarVisible = True
-                self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + 8, y=self.screenHeight - 55, width=self.volumeBar.width, height=self.volumeBar.height)
+            self.isVolumeBarVisible = True
+            self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + 8, y=(self.screenHeight - 55) * (self.fullscreenScaleY if self.bFullscreen.isFullscreen else 1) + (22 if self.bFullscreen.isFullscreen else 0), width=self.volumeBar.width, height=self.volumeBar.height)
         else:   # hide
             self.isVolumeBarVisible = False
-            self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + 8, y=self.screenHeight - 55, width=0, height=0)
+            self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + 8, y=(self.screenHeight - 55) * (self.fullscreenScaleY if self.bFullscreen.isFullscreen else 1) + (22 if self.bFullscreen.isFullscreen else 0), width=0, height=0)
 
         # update playback timer
         if self.player.get_state() == vlc.State.Ended:
@@ -292,7 +293,7 @@ class VideoPlayer(tk.Frame):
             self.actionBar.playbackTimer.setTime(self.player.get_time() / 1000)
 
         # Schedule the next update
-        self.after(10, self.scheduleUpdates)
+        self.after(10, self._update)
 
 
 class ActionBar(tk.Frame):
@@ -373,19 +374,85 @@ class FullscreenButton(tk.Frame):
     """
         A button for setting and exiting window fullscreen
     """
-    def __init__(self, parent, root, size: int = 50):
+    def __init__(self, parent, root, size: int):
         super().__init__(parent)
         self.root = root
+        self.parent = parent
+        self.isFullscreen = False
 
         image = Image.open("images/fullscreen.png")
         image.thumbnail((size, size))
         self.image = ImageTk.PhotoImage(image)
-        self.bVolume = tk.Button(self, width=size, command=self.toggleFullscreen, image=self.image, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
+        self.button = tk.Button(self, width=size, command=self.toggleFullscreen, image=self.image, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
 
-        self.bVolume.pack()
+        self.button.pack()
 
     def toggleFullscreen(self):
-        self.root.attributes("-fullscreen", not self.root.attributes("-fullscreen"))
+        self.isFullscreen = not self.isFullscreen
+
+        # get scale value
+        scaleX = self.parent.fullscreenScaleX
+        scaleY = self.parent.fullscreenScaleY
+
+        video = self.parent
+        widgetList = [video.canvas, video.background, video.progressBar, video.progressBar.canvas]
+
+        self.root.attributes("-fullscreen", self.isFullscreen)
+        if self.isFullscreen:
+            # update widget dimensions
+            for widget in widgetList:
+                geometry = widget.winfo_geometry()
+                dim, x, y = geometry.split("+")
+                width, height = dim.split("x")
+                width = int(width)
+                height = int(height)
+                widget.config(width=width * scaleX, height=height * scaleY)
+            
+
+            # extra changes
+
+            # progressbar
+            video.progressBar.width = video.progressBar.width * scaleX
+            video.progressBar.height = video.progressBar.height * scaleY
+            video.progressBar.place(x=0, y=video.screenHeight * scaleY)
+
+            # action bar
+            video.actionBar.place(x=5, y=(video.screenHeight+(video.progressBarHeight*2))*scaleY+video.progressBarHeight)
+            
+            # fullscreen button
+            video.bFullscreen.place(x=(WINDOW_WIDTH*scaleX-5-video.buttonSize)-video.progressBarHeight, y=(video.screenHeight*scaleY+(video.progressBarHeight*2)*scaleY+video.progressBarHeight))
+            
+        
+
+
+
+        else:
+            # update widgets
+            for widget in widgetList:
+                geometry = widget.winfo_geometry()
+                dim, x, y = geometry.split("+")
+                width, height = dim.split("x")
+                width = int(width)
+                height = int(height)
+                widget.config(width=width / scaleX, height=height / scaleY)
+
+            # extra changes
+
+            # progressbar
+            video.progressBar.width = video.progressBar.width / scaleX
+            video.progressBar.height = video.progressBar.height / scaleY
+            video.progressBar.place(x=0, y=video.screenHeight)
+
+            # action bar
+            video.actionBar.place(x=5, y=video.screenHeight+(video.progressBarHeight*2))
+            
+            # fullscreen button
+            video.bFullscreen.place(x=WINDOW_WIDTH-5-video.buttonSize, y=video.screenHeight+(video.progressBarHeight*2))
+
+
+
+        
+        
 
 class VolumeBar(tk.Frame):
     """
@@ -546,12 +613,12 @@ class PauseButton(tk.Frame):
         self.player = player
         self.isPaused = startPaused
 
-        imPlay = Image.open("images/play.png")
-        imPause = Image.open("images/pause.png")
-        imPlay.thumbnail((size, size))
-        imPause.thumbnail((size, size))
-        self.playImage = ImageTk.PhotoImage(imPlay)
-        self.pauseImage = ImageTk.PhotoImage(imPause)
+        self.imPlay = Image.open("images/play.png")
+        self.imPause = Image.open("images/pause.png")
+        self.imPlay.thumbnail((size, size))
+        self.imPause.thumbnail((size, size))
+        self.playImage = ImageTk.PhotoImage(self.imPlay)
+        self.pauseImage = ImageTk.PhotoImage(self.imPause)
 
         self.bPause = tk.Button(self, width=size, command=self.togglePause, image=self.playImage if startPaused else self.pauseImage, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
         self.bPause.image = self.playImage if startPaused else self.pauseImage
@@ -773,12 +840,10 @@ if __name__ == "__main__":
     root.resizable(width=False, height=False)
 
     video = VideoPlayer(root, screenWidth=WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40)
-    video.place(x=0,y=0, width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
+    video.place(x=0,y=0, width=root.winfo_screenwidth(), height=root.winfo_screenheight())
 
 
     video.openVideo("test-long.mp4")
-
-    updater = threading.Thread(target=video.scheduleUpdates)
-    updater.start()
+    video.scheduleUpdates()
 
     root.mainloop()

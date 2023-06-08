@@ -150,15 +150,24 @@ class ClipScene(tk.Frame):
         # instances
         self.tFilename = tk.Label(self, text="None")
         self.tFileCount = tk.Label(self, text="0 of 0")
-        #self.vid = video.VideoPlayer(self, playOnOpen=True)
+        self.video = video.VideoPlayer(root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40)
 
         # build
         self.tFilename.grid(column=0, row=0)
         self.tFileCount.grid(column=1, row=0)
-        #self.vid.grid(column=2,row=0)
+        video.place(x=0,y=0, width=video.WINDOW_WIDTH, height=video.WINDOW_HEIGHT)
 
-        #self.vid.openVideo("test.mp4")
+        video.openVideo("test-long.mp4")
+        video.scheduleUpdates()
 
+
+
+   
+
+
+    
+
+    
         
 
 
