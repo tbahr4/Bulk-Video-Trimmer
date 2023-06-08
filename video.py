@@ -28,6 +28,7 @@ class VideoPlayer(tk.Frame):
         self.duration = 0
         self.fullscreenScaleX = root.winfo_screenwidth() / WINDOW_WIDTH
         self.fullscreenScaleY = root.winfo_screenheight() / WINDOW_HEIGHT
+        self.isVideoOpened = False
 
         # properties
         self.playOnOpen = playOnOpen
@@ -87,8 +88,7 @@ class VideoPlayer(tk.Frame):
     def onKeyPress(self, event):
         key = event.keysym
         if key == "space":
-            self.bPause.togglePause()
-            
+            self.bPause.togglePause()         
         elif key == "Left":
             self.seek(-10000)
         elif key == "Right":
@@ -121,6 +121,9 @@ class VideoPlayer(tk.Frame):
             self.actionBar.bVolume.toggleMute()
         elif key == "f":
             self.bFullscreen.toggleFullscreen()
+        elif key == "Escape":
+            if self.bFullscreen.isFullscreen: 
+                self.bFullscreen.toggleFullscreen()
         elif key == "Home":
             if self.player.get_state() == vlc.State.Ended:
                 self.player.stop()
@@ -234,6 +237,8 @@ class VideoPlayer(tk.Frame):
         # play if set to autoplay on open
         if self.playOnOpen: self.play()
 
+        self.isVideoOpened = True
+
 
     def play(self):
         self.bPause.setUnpaused()
@@ -287,10 +292,11 @@ class VideoPlayer(tk.Frame):
             self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + 8, y=(self.screenHeight - 55) * (self.fullscreenScaleY if self.bFullscreen.isFullscreen else 1) + (22 if self.bFullscreen.isFullscreen else 0), width=0, height=0)
 
         # update playback timer
-        if self.player.get_state() == vlc.State.Ended:
-            self.actionBar.playbackTimer.setTime(self.player.get_length() / 1000)
-        elif timeSinceLastEndState > self.timeToUpdateEndState or self.player.get_time() != 0:
-            self.actionBar.playbackTimer.setTime(self.player.get_time() / 1000)
+        if self.isVideoOpened:
+            if self.player.get_state() == vlc.State.Ended:
+                self.actionBar.playbackTimer.setTime(self.player.get_length() / 1000)
+            elif timeSinceLastEndState > self.timeToUpdateEndState or self.player.get_time() != 0:
+                self.actionBar.playbackTimer.setTime(self.player.get_time() / 1000)
 
         # Schedule the next update
         self.after(10, self._update)
@@ -379,6 +385,8 @@ class FullscreenButton(tk.Frame):
         self.root = root
         self.parent = parent
         self.isFullscreen = False
+        self.lastFullscreenToggle = 0
+        self.timeBetweenToggles = .2
 
         image = Image.open("images/fullscreen.png")
         image.thumbnail((size, size))
@@ -388,6 +396,9 @@ class FullscreenButton(tk.Frame):
         self.button.pack()
 
     def toggleFullscreen(self):
+        if time.time() - self.lastFullscreenToggle < self.timeBetweenToggles: return
+        self.lastFullscreenToggle = time.time()
+
         self.isFullscreen = not self.isFullscreen
 
         # get scale value
@@ -422,10 +433,6 @@ class FullscreenButton(tk.Frame):
             # fullscreen button
             video.bFullscreen.place(x=(WINDOW_WIDTH*scaleX-5-video.buttonSize)-video.progressBarHeight, y=(video.screenHeight*scaleY+(video.progressBarHeight*2)*scaleY+video.progressBarHeight))
             
-        
-
-
-
         else:
             # update widgets
             for widget in widgetList:
@@ -448,8 +455,7 @@ class FullscreenButton(tk.Frame):
             
             # fullscreen button
             video.bFullscreen.place(x=WINDOW_WIDTH-5-video.buttonSize, y=video.screenHeight+(video.progressBarHeight*2))
-
-
+        
 
         
         
