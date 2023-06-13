@@ -8,3 +8,5 @@ gui-test.py
 /__pycache__
 /images/inv
 test.py
+*.avi
+/TestOutput
