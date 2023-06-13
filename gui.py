@@ -282,6 +282,9 @@ class SetButton(tk.Frame):
         self.button.pack()
 
     def onClick(self):
+        if self.clipScene.video.player.get_position() == 0 and not self.isLeft: return
+        if self.clipScene.video.player.get_time() >= self.clipScene.video.player.get_length()-1000 and self.isLeft: return
+
         if self.isLeft:
             self.clipScene.leftTime = self.clipScene.video.player.get_time()
         else:
