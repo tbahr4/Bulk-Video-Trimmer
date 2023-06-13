@@ -352,7 +352,7 @@ class DescriptionBar(tk.Frame):
 
         # enforce text rules here
         #
-        maxLength = 10
+        maxLength = 100
         text = self.boxContents.get()
 
         # remove excess text

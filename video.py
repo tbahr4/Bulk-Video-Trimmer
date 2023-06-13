@@ -247,9 +247,7 @@ class VideoPlayer(tk.Frame):
         # reset values
         self.lastEndStateTime = 0
         self.duration = 0
-        self.enableRestrictedPlayback = False
-        self.restrictLeft = 0
-        self.restrictRight = 0
+        self.unrestrictPlayback()
 
         media = self.instance.media_new(filepath)
         self.player.set_media(media)
@@ -375,6 +373,8 @@ class VideoPlayer(tk.Frame):
             Disables playback restriction
         """
         self.enableRestrictedPlayback = False
+        self.restrictLeft = 0
+        self.restrictRight = 0
         
 
 
