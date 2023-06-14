@@ -13,7 +13,7 @@ WINDOW_WIDTH = 1024
 
 
 class VideoPlayer(tk.Frame):
-    def __init__(self, parent, screenWidth: int, screenHeight: int, playOnOpen: bool, backgroundHeight: int, restrictLeftButton = None, restrictRightButton = None, unrestrictLeftButton = None, unrestrictRightButton = None):
+    def __init__(self, parent, screenWidth: int, screenHeight: int, playOnOpen: bool, backgroundHeight: int, restrictLeftButton = None, restrictRightButton = None, unrestrictLeftButton = None, unrestrictRightButton = None, clipScene = None):
         """
             Params:
             screenWidth: the width of the video screen
@@ -38,6 +38,7 @@ class VideoPlayer(tk.Frame):
         self.restrictRightButton = restrictRightButton
         self.unrestrictLeftButton = unrestrictLeftButton
         self.unrestrictRightButton = unrestrictRightButton
+        self.clipScene = clipScene
 
         # properties
         self.playOnOpen = playOnOpen
@@ -267,7 +268,6 @@ class VideoPlayer(tk.Frame):
         # reset values
         self.lastEndStateTime = 0
         self.duration = 0
-        self.unrestrictPlayback()
 
         media = self.instance.media_new(filepath)
         self.player.set_media(media)
@@ -287,6 +287,7 @@ class VideoPlayer(tk.Frame):
         if self.playOnOpen: self.play()
 
         self.isVideoOpened = True
+        self.unrestrictPlayback()
 
 
     def play(self):
@@ -378,6 +379,7 @@ class VideoPlayer(tk.Frame):
         rightPercent = time2 / self.player.get_length()
         self.progressBar.canvas.coords(self.progressBar.restrictBar, int(leftPercent * self.progressBar.width), 0, int(rightPercent * self.progressBar.width), self.progressBar.height * (2 if self.progressBar.isHovering or self.progressBar.isClicking else 1))
         self.progressBar.canvas.itemconfig(self.progressBar.restrictBar, state="normal")
+        print("done")
 
     def unrestrictPlayback(self):
         """
@@ -385,7 +387,11 @@ class VideoPlayer(tk.Frame):
         """
         self.enableRestrictedPlayback = False
         self.restrictLeft = 0
-        self.restrictRight = 0
+        self.restrictRight = self.player.get_length()
+        if self.clipScene != None:
+            self.clipScene.leftTime = self.restrictLeft
+            self.clipScene.rightTime = self.restrictRight
+        self.progressBar.canvas.itemconfig(self.progressBar.restrictBar, state="hidden")
         
 
 

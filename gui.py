@@ -12,6 +12,7 @@ bg = "#eeeeee"
 class Scene(Enum):
     SCENE_INITIAL = 0
     SCENE_CLIPS = 1
+    SCENE_TRIM = 2
 
 
 
@@ -36,18 +37,35 @@ class MainApp(tk.Frame):
         # data storage
         self.videoPaths = None
         self.destFolder = None
+        self.trimData = []
 
 
     def setScene(self, scene: Scene):
         if self.scene: self.scene.pack_forget()
 
         if scene == Scene.SCENE_INITIAL:
+            if type(self.scene) == ClipScene:
+                self.scene.video.place_forget()
+                self.root.unbind("<KeyPress>")
+                self.root.unbind("<FocusIn>")
+            self.root.unbind('<Button-1>')
+            self.root.unbind('<KeyPress>')
+
             self.scene = InitialScene(self)
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__":
                 self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test-long.mp4', r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test.mp4')
                 self.destFolder = r"C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/TestOutput"
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder)
+        elif scene == Scene.SCENE_TRIM:
+            if type(self.scene) == ClipScene:
+                self.scene.video.place_forget()
+                self.root.unbind("<KeyPress>")
+                self.root.unbind("<FocusIn>")
+            self.root.unbind('<Button-1>')
+            self.root.unbind('<KeyPress>')
+
+            self.scene = TrimScene(self)
         self.scene.pack()
             
 
@@ -188,21 +206,22 @@ class ClipScene(tk.Frame):
         self.parent = parent
         self.root = root
         self.currentVideo = 1
+        self.totalVideos = len(videoPaths)
 
         # instances
         self.background = tk.Canvas(self, background=bg, width=video.WINDOW_WIDTH, height=video.WINDOW_HEIGHT, borderwidth=0, highlightthickness=0)
         self.tFilename = tk.Label(self, text="None")
         self.tFileCount = tk.Label(self, text="0 of 0")
         self.actionBar = ActionBar(self)
-        self.video = video.VideoPlayer(self.root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40, restrictLeftButton=self.actionBar.setLeft, restrictRightButton=self.actionBar.setRight, unrestrictLeftButton=self.actionBar.resetLeft, unrestrictRightButton=self.actionBar.resetRight)
-        self.footerBar = FooterBar(self, self.currentVideo, len(videoPaths))
+        self.video = video.VideoPlayer(self.root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40, restrictLeftButton=self.actionBar.setLeft, restrictRightButton=self.actionBar.setRight, unrestrictLeftButton=self.actionBar.resetLeft, unrestrictRightButton=self.actionBar.resetRight, clipScene=self)
+        self.footerBar = FooterBar(self, clipScene=self, mainApp=self.parent)
 
         # add listeners
-        root.bind('<Button-1>', self.onClick)
-        root.bind('<KeyPress>', self.onKeyPress)
+        self.root.bind('<Button-1>', self.onClick)
+        self.root.bind('<KeyPress>', self.onKeyPress)
 
         # build     
-        root.geometry(str(video.WINDOW_WIDTH) + "x" + str(video.WINDOW_HEIGHT))
+        self.root.geometry(str(video.WINDOW_WIDTH) + "x" + str(video.WINDOW_HEIGHT))
 
         self.background.pack()
         self.tFilename.place(x=4, y=2)
@@ -224,7 +243,7 @@ class ClipScene(tk.Frame):
         filename = videoPaths[self.currentVideo-1].split("/")[-1][:100]
         self.tFilename.config(text=filename)
         # replace file count to fit
-        root.update()
+        self.root.update()
         self.tFileCount.place(x=video.WINDOW_WIDTH-5-self.tFileCount.winfo_width(), y=2)
         # update times to default
         self.leftTime = 0
@@ -285,6 +304,7 @@ class SetButton(tk.Frame):
         self.button.pack()
 
     def onClick(self):
+        print(">>>", self.clipScene.leftTime, self.clipScene.rightTime)
         if self.clipScene.video.player.get_position() == 0 and not self.isLeft: return
         if self.clipScene.video.player.get_time() >= self.clipScene.video.player.get_length()-1000 and self.isLeft: return
 
@@ -293,6 +313,7 @@ class SetButton(tk.Frame):
         else:
             self.clipScene.rightTime = self.clipScene.video.player.get_time()
 
+        print(">>>", self.clipScene.leftTime, self.clipScene.rightTime)
         self.clipScene.video.restrictPlayback(self.clipScene.leftTime, self.clipScene.rightTime)
 
     def shiftLock(self, time):
@@ -347,15 +368,48 @@ class ActionBar(tk.Frame):
         self.resetRight.grid(column=3, row=0)
 
 class NextButton(tk.Frame):
-    def __init__(self, parent, currentVideo: int, totalVideos: int):
+    def __init__(self, parent, clipScene: ClipScene, mainApp: MainApp):
         super().__init__(parent)
+        self.clipScene = clipScene
+        self.mainApp = mainApp
 
-        self.button = tk.Button(self, width=10, text="Next" if currentVideo != totalVideos else "Done", command=self.onClick, bg="#bbbbbb")
+        self.button = tk.Button(self, width=10, text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done", command=self.onClick, bg="#bbbbbb")
         self.button.config(state="disabled")
         self.button.pack()
 
     def onClick(self):
-        pass
+        # disable double press
+        self.button.config(state="disabled")
+        self.clipScene.footerBar.descBar.box.config(state="disabled")
+
+        # save picked times
+        self.mainApp.trimData.append((self.clipScene.footerBar.descBar.boxContents.get(), self.clipScene.leftTime, self.clipScene.rightTime))
+
+        if self.clipScene.currentVideo == self.clipScene.totalVideos:  # done
+            self.mainApp.setScene(Scene.SCENE_TRIM)
+        else:
+            #
+            # change to next video
+            #
+            self.clipScene.currentVideo += 1
+
+            # update text
+            self.button.config(text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done")
+            self.clipScene.tFileCount.config(text=f"{self.clipScene.currentVideo} of {self.clipScene.totalVideos}")
+            filename = self.mainApp.videoPaths[self.clipScene.currentVideo-1].split("/")[-1][:100]
+            self.clipScene.tFilename.config(text=filename)
+            self.clipScene.footerBar.descBar.boxContents.set("")
+
+            # replace file count to fit
+            self.mainApp.root.update()
+            self.clipScene.tFileCount.place(x=video.WINDOW_WIDTH-5-self.clipScene.tFileCount.winfo_width(), y=2)
+
+            # update video
+            self.clipScene.video.openVideo(self.mainApp.videoPaths[self.clipScene.currentVideo-1])
+
+            # reenable text entry
+            self.clipScene.footerBar.descBar.box.config(state="normal")
+
 
 class DescriptionBar(tk.Frame):
     def __init__(self, parent, nextButton: NextButton):
@@ -409,17 +463,26 @@ class DescriptionBar(tk.Frame):
         
 
 class FooterBar(tk.Frame):
-    def __init__(self, parent, currentVideo: int, totalVideos: int):
+    def __init__(self, parent, clipScene: ClipScene, mainApp: MainApp):
         super().__init__(parent)
 
-        self.nextButton = NextButton(self, currentVideo=currentVideo, totalVideos=totalVideos)
+        self.nextButton = NextButton(self, clipScene=clipScene, mainApp=mainApp)
         self.descBar = DescriptionBar(self, nextButton=self.nextButton)
 
         self.descBar.grid(column=0, row=0)
         self.nextButton.grid(column=1, row=0)
 
+class TrimScene(tk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+       # self.parent.parent.geometry("400x100")
 
-   
+        # instances
+        
+
+        # build
+        
 
 
 
