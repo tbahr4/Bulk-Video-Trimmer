@@ -535,67 +535,6 @@ class FullscreenButton(tk.Frame):
             #video.progressBar.height = video.progressBar.height / scaleY
             video.progressBar.place(x=0, y=video.screenHeight)
             video.progressBar.canvas.config(width=data[1])
-            
-        
-
-            
-
-        #
-        # Old fullscreen for entire window rather than video
-        #
-
-        # video = self.parent
-        # widgetList = [video.canvas, video.background, video.progressBar, video.progressBar.canvas]
-
-        # self.root.attributes("-fullscreen", self.isFullscreen)
-        # if self.isFullscreen:
-        #     # update widget dimensions
-        #     for widget in widgetList:
-        #         geometry = widget.winfo_geometry()
-        #         dim, x, y = geometry.split("+")
-        #         width, height = dim.split("x")
-        #         width = int(width)
-        #         height = int(height)
-        #         widget.config(width=width * scaleX, height=height * scaleY)
-            
-
-        #     # extra changes
-
-        #     # progressbar
-        #     video.progressBar.width = video.progressBar.width * scaleX
-        #     video.progressBar.height = video.progressBar.height * scaleY
-        #     video.progressBar.place(x=0, y=video.screenHeight * scaleY)
-
-        #     # action bar
-        #     video.actionBar.place(x=5, y=(video.screenHeight+(video.progressBarHeight*2))*scaleY+video.progressBarHeight)
-            
-        #     # fullscreen button
-        #     video.bFullscreen.place(x=(WINDOW_WIDTH*scaleX-5-video.buttonSize)-video.progressBarHeight, y=(video.screenHeight*scaleY+(video.progressBarHeight*2)*scaleY+video.progressBarHeight))
-            
-        # else:
-        #     # update widgets
-        #     for widget in widgetList:
-        #         geometry = widget.winfo_geometry()
-        #         dim, x, y = geometry.split("+")
-        #         width, height = dim.split("x")
-        #         width = int(width)
-        #         height = int(height)
-        #         widget.config(width=width / scaleX, height=height / scaleY)
-
-        #     # extra changes
-
-        #     # progressbar
-        #     video.progressBar.width = video.progressBar.width / scaleX
-        #     video.progressBar.height = video.progressBar.height / scaleY
-        #     video.progressBar.place(x=0, y=video.screenHeight)
-
-        #     # action bar
-        #     video.actionBar.place(x=5, y=video.screenHeight+(video.progressBarHeight*2))
-            
-        #     # fullscreen button
-        #     video.bFullscreen.place(x=WINDOW_WIDTH-5-video.buttonSize, y=video.screenHeight+(video.progressBarHeight*2))
-        
-
         
         
 
