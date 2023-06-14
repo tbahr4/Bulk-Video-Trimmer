@@ -202,12 +202,12 @@ class ClipScene(tk.Frame):
         root.bind('<KeyPress>', self.onKeyPress)
 
         # build     
-        root.geometry(str(video.WINDOW_WIDTH) + "x" + str(video.WINDOW_HEIGHT-119))
+        root.geometry(str(video.WINDOW_WIDTH) + "x" + str(video.WINDOW_HEIGHT))
 
         self.background.pack()
         self.tFilename.place(x=4, y=2)
         self.tFileCount.place(x=video.WINDOW_WIDTH-40, y=2)
-        self.video.place(x=0,y=25, width=self.root.winfo_screenwidth()+10, height=int(self.root.winfo_screenheight()/2) + 40)
+        self.video.place(x=0,y=25, width=self.video.screenWidth, height=self.video.screenHeight + 40)
 
         buttonSize = 35
         actionBarWidth = buttonSize * 2 + 200

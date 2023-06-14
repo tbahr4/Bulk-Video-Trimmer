@@ -6,7 +6,7 @@ import time
 import gui
 from PIL import Image, ImageTk
 
-WINDOW_HEIGHT = 768
+WINDOW_HEIGHT = 649
 WINDOW_WIDTH = 1024
 
 
