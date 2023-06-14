@@ -193,8 +193,8 @@ class ClipScene(tk.Frame):
         self.background = tk.Canvas(self, background=bg, width=video.WINDOW_WIDTH, height=video.WINDOW_HEIGHT, borderwidth=0, highlightthickness=0)
         self.tFilename = tk.Label(self, text="None")
         self.tFileCount = tk.Label(self, text="0 of 0")
-        self.video = video.VideoPlayer(self.root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40)
         self.actionBar = ActionBar(self)
+        self.video = video.VideoPlayer(self.root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40, restrictLeftButton=self.actionBar.setLeft, restrictRightButton=self.actionBar.setRight, unrestrictLeftButton=self.actionBar.resetLeft, unrestrictRightButton=self.actionBar.resetRight)
         self.footerBar = FooterBar(self, self.currentVideo, len(videoPaths))
 
         # add listeners
@@ -291,6 +291,37 @@ class SetButton(tk.Frame):
             self.clipScene.rightTime = self.clipScene.video.player.get_time()
 
         self.clipScene.video.restrictPlayback(self.clipScene.leftTime, self.clipScene.rightTime)
+
+    def shiftLock(self, time):
+        """
+            Shifts the lock by the given time, if on a boundary, sets its to that boundary
+            Does nothing if lock is not already set
+        """
+        if not self.clipScene.video.enableRestrictedPlayback: return
+
+        if self.clipScene.video.player.get_position() == 0 and not self.isLeft: return
+        if self.clipScene.video.player.get_time() >= self.clipScene.video.player.get_length()-1000 and self.isLeft: return
+
+        duration = self.clipScene.video.player.get_length()
+
+        if time > 0 and self.isLeft and self.clipScene.leftTime + time > duration:
+            self.clipScene.leftTime = duration 
+        elif time > 0 and not self.isLeft and self.clipScene.rightTime + time > duration:
+            self.clipScene.rightTime = duration
+        elif time < 0 and self.isLeft and self.clipScene.leftTime + time < 0:
+            self.clipScene.leftTime = 0
+        elif time < 0 and not self.isLeft and self.clipScene.rightTime + time < 0:
+            self.clipScene.rightTime = 0
+        else:
+            if self.isLeft:
+                self.clipScene.leftTime += time
+            else:
+                self.clipScene.rightTime += time
+
+        self.clipScene.video.restrictPlayback(self.clipScene.leftTime, self.clipScene.rightTime)
+
+
+
         
 
             

@@ -3,6 +3,7 @@ import tkinter as tk
 import vlc
 import threading
 import time
+import gui
 from PIL import Image, ImageTk
 
 WINDOW_HEIGHT = 768
@@ -12,7 +13,7 @@ WINDOW_WIDTH = 1024
 
 
 class VideoPlayer(tk.Frame):
-    def __init__(self, parent, screenWidth: int, screenHeight: int, playOnOpen: bool, backgroundHeight: int):
+    def __init__(self, parent, screenWidth: int, screenHeight: int, playOnOpen: bool, backgroundHeight: int, restrictLeftButton: gui.SetButton, restrictRightButton: gui.SetButton, unrestrictLeftButton: gui.ResetButton, unrestrictRightButton: gui.ResetButton):
         """
             Params:
             screenWidth: the width of the video screen
@@ -33,6 +34,10 @@ class VideoPlayer(tk.Frame):
         self.enableRestrictedPlayback = False
         self.restrictLeft = None
         self.restrictRight = None
+        self.restrictLeftButton = restrictLeftButton
+        self.restrictRightButton = restrictRightButton
+        self.unrestrictLeftButton = unrestrictLeftButton
+        self.unrestrictRightButton = unrestrictRightButton
 
         # properties
         self.playOnOpen = playOnOpen
@@ -139,9 +144,9 @@ class VideoPlayer(tk.Frame):
                 fps = self.player.get_fps()
                 duration = int(1000 / fps)       # number of ms per frame
                 self.seek(-duration)
-        elif key == "m":
+        elif key in ["m","M"]:
             self.actionBar.bVolume.toggleMute()
-        elif key == "f":
+        elif key in ["f","F"]:
             self.bFullscreen.toggleFullscreen()
         elif key == "Escape":
             if self.bFullscreen.isFullscreen: 
@@ -175,9 +180,7 @@ class VideoPlayer(tk.Frame):
                 if new_time < self.restrictLeft: return
                 self._setPlayerPosition(max(0, new_time/self.duration))
             else:
-                self._setPlayerPosition(max(0, (self.duration - 20000) / self.duration))
-                
-
+                self._setPlayerPosition(max(0, (self.duration - 20000) / self.duration))        
         elif key in [str(val) for val in range(0,10)]:
             # reset player if video is completed
             percent = int(key) / 10
@@ -202,7 +205,18 @@ class VideoPlayer(tk.Frame):
                 self._setPlayerPosition(percent)
             else:
                 self.player.set_time(int(self.duration * percent))
-
+        elif key in ["e","E"] and event.state == 8:
+            self.restrictLeftButton.onClick()
+        elif key in ["r","R"] and event.state == 8:
+            self.restrictRightButton.onClick()
+        elif key in ["e","E"] and event.state in [12,14]:   # Ctrl-e
+            self.unrestrictLeftButton.onClick()
+        elif key in ["r","R"] and event.state in [12,14]:   # Ctrl-r
+            self.unrestrictRightButton.onClick()   
+        elif key in ["e","E"] and event.state == 9:         # Shift-e
+            self.restrictLeftButton.shiftLock(-5000)
+        elif key in ["r","R"] and event.state == 9:         # Shift-r
+            self.restrictRightButton.shiftLock(5000)
             
 
         
@@ -303,7 +317,6 @@ class VideoPlayer(tk.Frame):
         # pause if at end of video
         framesToEnd = duration - self.player.get_time()
         if self.player.get_state() == vlc.State.Playing and framesToEnd < 250:
-            print("safe pause")
             self.player.pause()
 
         # update pause button
@@ -829,10 +842,13 @@ class ProgressBar(tk.Frame):
         self.canvas.bind("<Enter>", self.onHover)
         self.canvas.bind("<Leave>", self.onLeave)
         self.canvas.bind("<Button-1>", self.onClick)
+        self.canvas.bind("<Button-3>", self.onOtherClick)
+        self.canvas.bind("<Button-2>", self.onOtherClick)
         self.canvas.bind("<B1-Motion>", self.onDrag)
         self.canvas.bind("<ButtonRelease-1>", self.onUnclick)
 
     def onDrag(self, event):
+        if not self.isClicking: return
         x = event.x - self.canvas.canvasx(0)
         percent = x / self.width
         percent = max(0, percent)
@@ -875,8 +891,6 @@ class ProgressBar(tk.Frame):
             self.parent.bPause.setPaused()
         else:
             self.parent._setPlayerPosition(percent)
-            
-     
 
     def onUnclick(self, event):
         self.isClicking = False
@@ -893,6 +907,16 @@ class ProgressBar(tk.Frame):
         # call other update function
         self.parent.onLeave_ProgressBar(event=None)
 
+    def onOtherClick(self, event):
+        if not self.isClicking: return
+        self.isClicking = False
+        # update bar size
+        if not self.isHovering:
+            # update canvas size
+            self.canvas.config(height=self.height)
+
+        # call other update function
+        self.parent.onLeave_ProgressBar(event=None)
 
     def onHover(self, event):
         self.isHovering = True
@@ -905,6 +929,9 @@ class ProgressBar(tk.Frame):
         if not self.isClicking:
             # update canvas size
             self.canvas.config(height=self.height)
+
+        # call other update function
+        self.parent.onLeave_ProgressBar(event=None)
 
     def setValue(self, value: float):
         """
@@ -920,20 +947,20 @@ class ProgressBar(tk.Frame):
             leftPercent = leftTime / self.player.get_length()
             rightPercent = rightTime / self.player.get_length()
 
-            self.canvas.coords(self.backBar, 0, 0, self.width, self.height * (2 if self.isHovering or self.isClicking else 1))
+            self.canvas.coords(self.backBar, 0, 0, self.width, self.height * 2)
             
             if value < leftPercent:
-                self.canvas.coords(self.progressBar, int(max(0, leftPercent) * self.width), 0, int(max(0, leftPercent) * self.width), self.height * (2 if self.isHovering or self.isClicking else 1))
+                self.canvas.coords(self.progressBar, int(max(0, leftPercent) * self.width), 0, int(max(0, leftPercent) * self.width), self.height * 2)
             else:
-                self.canvas.coords(self.progressBar, int(max(0, leftPercent) * self.width), 0, int(min(value, rightPercent) * self.width), self.height * (2 if self.isHovering or self.isClicking else 1))
+                self.canvas.coords(self.progressBar, int(max(0, leftPercent) * self.width), 0, int(min(value, rightPercent) * self.width), self.height * 2)
                 
         else:
-            self.canvas.coords(self.backBar, 0, 0, self.width, self.height * (2 if self.isHovering or self.isClicking else 1))
-            self.canvas.coords(self.progressBar, 0, 0, int(value * self.width), self.height * (2 if self.isHovering or self.isClicking else 1))
+            self.canvas.coords(self.backBar, 0, 0, self.width, self.height * 2)
+            self.canvas.coords(self.progressBar, 0, 0, int(value * self.width), self.height * 2)
 
         # update restriction bar
         if self.parent.enableRestrictedPlayback:
-            self.canvas.coords(self.restrictBar, int(leftPercent * self.width), 0, int(rightPercent * self.width), self.height * (2 if self.isHovering or self.isClicking else 1))
+            self.canvas.coords(self.restrictBar, int(leftPercent * self.width), 0, int(rightPercent * self.width), self.height * 2)
 
 
 
