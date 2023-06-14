@@ -304,7 +304,6 @@ class SetButton(tk.Frame):
         self.button.pack()
 
     def onClick(self):
-        print(">>>", self.clipScene.leftTime, self.clipScene.rightTime)
         if self.clipScene.video.player.get_position() == 0 and not self.isLeft: return
         if self.clipScene.video.player.get_time() >= self.clipScene.video.player.get_length()-1000 and self.isLeft: return
 
@@ -313,7 +312,6 @@ class SetButton(tk.Frame):
         else:
             self.clipScene.rightTime = self.clipScene.video.player.get_time()
 
-        print(">>>", self.clipScene.leftTime, self.clipScene.rightTime)
         self.clipScene.video.restrictPlayback(self.clipScene.leftTime, self.clipScene.rightTime)
 
     def shiftLock(self, time):

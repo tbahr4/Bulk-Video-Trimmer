@@ -379,7 +379,6 @@ class VideoPlayer(tk.Frame):
         rightPercent = time2 / self.player.get_length()
         self.progressBar.canvas.coords(self.progressBar.restrictBar, int(leftPercent * self.progressBar.width), 0, int(rightPercent * self.progressBar.width), self.progressBar.height * (2 if self.progressBar.isHovering or self.progressBar.isClicking else 1))
         self.progressBar.canvas.itemconfig(self.progressBar.restrictBar, state="normal")
-        print("done")
 
     def unrestrictPlayback(self):
         """
@@ -723,12 +722,8 @@ class PauseButton(tk.Frame):
 
     def togglePause(self):
         if not self.parent.parent.isVideoOpened: return
-
-        # do not toggle pause if in restricted mode and past boundary
         while self.player.get_state() == vlc.State.Opening: pass
-        #if self.parent.parent.enableRestrictedPlayback and round(self.player.get_position(), 6) >= round(self.parent.parent.restrictRight / self.parent.parent.player.get_length(), 6): 
-            #self.parent.parent._setPlayerPosition(0)   # set back to start
-            #print("resetting")
+
 
         # if past edge of video (250) and attempting to play, reset
         if self.player.get_length() - self.player.get_time() < 250:
