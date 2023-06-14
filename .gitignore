@@ -7,6 +7,5 @@ gui-test.py
 *.mp4
 /__pycache__
 /images/inv
-test.py
 *.avi
 /TestOutput

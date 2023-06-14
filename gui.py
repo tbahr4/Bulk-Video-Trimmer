@@ -223,6 +223,9 @@ class ClipScene(tk.Frame):
         self.tFileCount.config(text=f"{self.currentVideo} of {len(videoPaths)}")
         filename = videoPaths[self.currentVideo-1].split("/")[-1][:100]
         self.tFilename.config(text=filename)
+        # replace file count to fit
+        root.update()
+        self.tFileCount.place(x=video.WINDOW_WIDTH-5-self.tFileCount.winfo_width(), y=2)
         # update times to default
         self.leftTime = 0
         self.rightTime = self.video.player.get_length()
@@ -233,7 +236,7 @@ class ClipScene(tk.Frame):
         """
         if event.widget != self.footerBar.descBar.box:
             self.footerBar.descBar.isBoxFocused = False
-            root.focus()
+            self.root.focus()
 
     def onKeyPress(self, event):
         """

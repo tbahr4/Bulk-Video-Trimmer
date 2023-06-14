@@ -507,11 +507,8 @@ class FullscreenButton(tk.Frame):
             # adjust widgets
 
             # progressbar
-            
-
             self.widgetData[video.progressBar] = (video.progressBar.width, video.progressBar.canvas.winfo_width())
             video.progressBar.width = video.parent.winfo_screenwidth()
-            #video.progressBar.height = video.progressBar.height * scaleY
             video.progressBar.place(x=0, y=video.parent.winfo_screenheight() - video.progressBarHeight)
             video.progressBar.canvas.config(width=video.parent.winfo_screenwidth())
             
@@ -532,7 +529,6 @@ class FullscreenButton(tk.Frame):
             # progressbar
             data = self.widgetData[video.progressBar]
             video.progressBar.width = data[0]
-            #video.progressBar.height = video.progressBar.height / scaleY
             video.progressBar.place(x=0, y=video.screenHeight)
             video.progressBar.canvas.config(width=data[1])
         
