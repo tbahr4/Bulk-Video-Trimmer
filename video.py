@@ -13,7 +13,7 @@ WINDOW_WIDTH = 1024
 
 
 class VideoPlayer(tk.Frame):
-    def __init__(self, parent, screenWidth: int, screenHeight: int, playOnOpen: bool, backgroundHeight: int, restrictLeftButton: gui.SetButton, restrictRightButton: gui.SetButton, unrestrictLeftButton: gui.ResetButton, unrestrictRightButton: gui.ResetButton):
+    def __init__(self, parent, screenWidth: int, screenHeight: int, playOnOpen: bool, backgroundHeight: int, restrictLeftButton = None, restrictRightButton = None, unrestrictLeftButton = None, unrestrictRightButton = None):
         """
             Params:
             screenWidth: the width of the video screen
@@ -88,11 +88,11 @@ class VideoPlayer(tk.Frame):
         self.progressBar.bind("<Leave>", self.onLeave_ProgressBar)
 
     def onHover_ProgressBar(self, event):
-        self.progressBar.place(x=0, y=self.screenHeight * (self.fullscreenScaleY if self.bFullscreen.isFullscreen else 1) - self.progressBar.height)
+        self.progressBar.place(x=0, y=(self.screenHeight if not self.bFullscreen.isFullscreen else self.parent.winfo_screenheight()-self.progressBarHeight) - self.progressBar.height)
     
     def onLeave_ProgressBar(self, event):
         if not self.progressBar.isClicking and not self.progressBar.isHovering:
-            self.progressBar.place(x=0, y=self.screenHeight * (self.fullscreenScaleY if self.bFullscreen.isFullscreen else 1))
+            self.progressBar.place(x=0, y=self.screenHeight if not self.bFullscreen.isFullscreen else self.parent.winfo_screenheight()-self.progressBarHeight)
 
     def _setPlayerPosition(self, percent):
         """
@@ -256,7 +256,6 @@ class VideoPlayer(tk.Frame):
         else:
             self._setPlayerPosition(newTime/duration)
 
-
     def openVideo(self, filepath: str):
         # reset values
         self.lastEndStateTime = 0
@@ -266,14 +265,6 @@ class VideoPlayer(tk.Frame):
         media = self.instance.media_new(filepath)
         self.player.set_media(media)
         self.player.set_hwnd(self.canvas.winfo_id())
-        
-        # get video dimensions if screen size not specified
-        if self.screenWidth == None and self.screenHeight == None:
-            media.parse()
-            while not media.is_parsed(): time.sleep(.1)     # TODO
-            width = self.player.video_get_width()
-            height = self.player.video_get_height()
-            self.canvas.config(width=width, height=height)
         
         # Load thumbnail
         self.play()
@@ -476,6 +467,7 @@ class FullscreenButton(tk.Frame):
         self.isFullscreen = False
         self.lastFullscreenToggle = 0
         self.timeBetweenToggles = .2
+        self.widgetData = {}
 
         image = Image.open("images/fullscreen.png")
         image.thumbnail((size, size))
@@ -486,66 +478,122 @@ class FullscreenButton(tk.Frame):
 
     def toggleFullscreen(self):
         if not self.parent.isVideoOpened: return
-
         if time.time() - self.lastFullscreenToggle < self.timeBetweenToggles: return
         self.lastFullscreenToggle = time.time()
-
         self.isFullscreen = not self.isFullscreen
 
         # get scale value
         scaleX = self.parent.fullscreenScaleX
         scaleY = self.parent.fullscreenScaleY
 
-        video = self.parent
-        widgetList = [video.canvas, video.background, video.progressBar, video.progressBar.canvas]
-
         self.root.attributes("-fullscreen", self.isFullscreen)
+        video = self.parent
+        widgetList = [video.actionBar, video.bFullscreen, video.volumeBar]
         if self.isFullscreen:
-            # update widget dimensions
-            for widget in widgetList:
-                geometry = widget.winfo_geometry()
-                dim, x, y = geometry.split("+")
-                width, height = dim.split("x")
-                width = int(width)
-                height = int(height)
-                widget.config(width=width * scaleX, height=height * scaleY)
-            
+            # video
+            self.widgetData[video] = (video.winfo_x(), video.winfo_y())
+            video.place(x=0, y=0, width=video.parent.winfo_screenwidth(), height=video.parent.winfo_screenheight())
+            video.canvas.config(width=video.parent.winfo_screenwidth(), height=video.parent.winfo_screenheight())
 
-            # extra changes
+            # hide widgets
+            for widget in widgetList:
+                x = widget.winfo_x()
+                y = widget.winfo_y()
+                width = widget.winfo_width()
+                height = widget.winfo_height()
+                self.widgetData[widget] = (x,y,width,height)
+                widget.place_forget()
+
+            # adjust widgets
 
             # progressbar
-            video.progressBar.width = video.progressBar.width * scaleX
-            video.progressBar.height = video.progressBar.height * scaleY
-            video.progressBar.place(x=0, y=video.screenHeight * scaleY)
+            
 
-            # action bar
-            video.actionBar.place(x=5, y=(video.screenHeight+(video.progressBarHeight*2))*scaleY+video.progressBarHeight)
+            self.widgetData[video.progressBar] = (video.progressBar.width, video.progressBar.canvas.winfo_width())
+            video.progressBar.width = video.parent.winfo_screenwidth()
+            #video.progressBar.height = video.progressBar.height * scaleY
+            video.progressBar.place(x=0, y=video.parent.winfo_screenheight() - video.progressBarHeight)
+            video.progressBar.canvas.config(width=video.parent.winfo_screenwidth())
             
-            # fullscreen button
-            video.bFullscreen.place(x=(WINDOW_WIDTH*scaleX-5-video.buttonSize)-video.progressBarHeight, y=(video.screenHeight*scaleY+(video.progressBarHeight*2)*scaleY+video.progressBarHeight))
-            
+
         else:
-            # update widgets
-            for widget in widgetList:
-                geometry = widget.winfo_geometry()
-                dim, x, y = geometry.split("+")
-                width, height = dim.split("x")
-                width = int(width)
-                height = int(height)
-                widget.config(width=width / scaleX, height=height / scaleY)
+            # video
+            data = self.widgetData[video]
+            video.canvas.config(width=video.screenWidth, height=video.screenHeight)
+            video.place(x=data[0], y=data[1], width=self.root.winfo_screenwidth()+10, height=int(self.root.winfo_screenheight()/2) + 40)
 
-            # extra changes
+            # unhide widgets
+            for widget in widgetList:
+                data = self.widgetData[widget]
+                widget.place(x=data[0], y=data[1], width=data[2], height=data[3])
+
+            # adjust widgets
 
             # progressbar
-            video.progressBar.width = video.progressBar.width / scaleX
-            video.progressBar.height = video.progressBar.height / scaleY
+            data = self.widgetData[video.progressBar]
+            video.progressBar.width = data[0]
+            #video.progressBar.height = video.progressBar.height / scaleY
             video.progressBar.place(x=0, y=video.screenHeight)
-
-            # action bar
-            video.actionBar.place(x=5, y=video.screenHeight+(video.progressBarHeight*2))
+            video.progressBar.canvas.config(width=data[1])
             
-            # fullscreen button
-            video.bFullscreen.place(x=WINDOW_WIDTH-5-video.buttonSize, y=video.screenHeight+(video.progressBarHeight*2))
+        
+
+            
+
+        #
+        # Old fullscreen for entire window rather than video
+        #
+
+        # video = self.parent
+        # widgetList = [video.canvas, video.background, video.progressBar, video.progressBar.canvas]
+
+        # self.root.attributes("-fullscreen", self.isFullscreen)
+        # if self.isFullscreen:
+        #     # update widget dimensions
+        #     for widget in widgetList:
+        #         geometry = widget.winfo_geometry()
+        #         dim, x, y = geometry.split("+")
+        #         width, height = dim.split("x")
+        #         width = int(width)
+        #         height = int(height)
+        #         widget.config(width=width * scaleX, height=height * scaleY)
+            
+
+        #     # extra changes
+
+        #     # progressbar
+        #     video.progressBar.width = video.progressBar.width * scaleX
+        #     video.progressBar.height = video.progressBar.height * scaleY
+        #     video.progressBar.place(x=0, y=video.screenHeight * scaleY)
+
+        #     # action bar
+        #     video.actionBar.place(x=5, y=(video.screenHeight+(video.progressBarHeight*2))*scaleY+video.progressBarHeight)
+            
+        #     # fullscreen button
+        #     video.bFullscreen.place(x=(WINDOW_WIDTH*scaleX-5-video.buttonSize)-video.progressBarHeight, y=(video.screenHeight*scaleY+(video.progressBarHeight*2)*scaleY+video.progressBarHeight))
+            
+        # else:
+        #     # update widgets
+        #     for widget in widgetList:
+        #         geometry = widget.winfo_geometry()
+        #         dim, x, y = geometry.split("+")
+        #         width, height = dim.split("x")
+        #         width = int(width)
+        #         height = int(height)
+        #         widget.config(width=width / scaleX, height=height / scaleY)
+
+        #     # extra changes
+
+        #     # progressbar
+        #     video.progressBar.width = video.progressBar.width / scaleX
+        #     video.progressBar.height = video.progressBar.height / scaleY
+        #     video.progressBar.place(x=0, y=video.screenHeight)
+
+        #     # action bar
+        #     video.actionBar.place(x=5, y=video.screenHeight+(video.progressBarHeight*2))
+            
+        #     # fullscreen button
+        #     video.bFullscreen.place(x=WINDOW_WIDTH-5-video.buttonSize, y=video.screenHeight+(video.progressBarHeight*2))
         
 
         
