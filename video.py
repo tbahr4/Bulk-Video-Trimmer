@@ -86,6 +86,13 @@ class VideoPlayer(tk.Frame):
         root.bind("<KeyPress>", self.onKeyPress)
         self.progressBar.bind("<Enter>", self.onHover_ProgressBar)
         self.progressBar.bind("<Leave>", self.onLeave_ProgressBar)
+        root.bind("<FocusIn>", self.onWindowFocus)
+
+    def onWindowFocus(self, event):
+        """
+            Used to avoid 0 size window on Win+D keypress
+        """
+        self.parent.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
 
     def onHover_ProgressBar(self, event):
         self.progressBar.place(x=0, y=(self.screenHeight if not self.bFullscreen.isFullscreen else self.parent.winfo_screenheight()-self.progressBarHeight) - self.progressBar.height)
