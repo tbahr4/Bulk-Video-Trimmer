@@ -517,7 +517,7 @@ class FullscreenButton(tk.Frame):
             # video
             data = self.widgetData[video]
             video.canvas.config(width=video.screenWidth, height=video.screenHeight)
-            video.place(x=data[0], y=data[1], width=self.root.winfo_screenwidth()+10, height=int(self.root.winfo_screenheight()/2) + 40)
+            video.place(x=data[0], y=data[1], width=video.screenWidth, height=video.screenHeight + 40)
 
             # unhide widgets
             for widget in widgetList:
