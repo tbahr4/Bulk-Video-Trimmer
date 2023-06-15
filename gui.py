@@ -58,7 +58,7 @@ class MainApp(tk.Frame):
             self.scene = InitialScene(self)
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__":
-                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test-long.mp4', r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test.mp4')
+                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test-long.mp4',)
                 self.destFolder = r"C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/TestOutput"
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder)
         elif scene == Scene.SCENE_TRIM:
@@ -393,7 +393,7 @@ class NextButton(tk.Frame):
 
 
         # save picked times
-        self.mainApp.trimData.append(dict([("description", self.clipScene.footerBar.descBar.boxContents.get()), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime)]))
+        self.mainApp.trimData.append(dict([("description", self.clipScene.footerBar.descBar.boxContents.get()), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime), ("fullVideoLength", self.clipScene.video.player.get_length()), ("isFramePerfect", self.clipScene.framePerfectButton.isSet)]))
 
         if self.clipScene.currentVideo == self.clipScene.totalVideos:  # done
             self.mainApp.setScene(Scene.SCENE_TRIM)
@@ -549,8 +549,9 @@ class TrimScene(tk.Frame):
         for trimData in self.mainApp.trimData[self.videoCount:]:
             inputPath = self.mainApp.videoPaths[self.videoCount]
             outputPath = f"{self.mainApp.destFolder}/({self.videoCount+1}) {trimData['description']}.mp4"
-            startTime = round(trimData["startTime"] / 1000, 6)
-            endTime = round(trimData["endTime"] / 1000, 6)
+            startTime = trimData["startTime"] / 1000
+            endTime = trimData["endTime"] / 1000
+            isFramePerfect = trimData["isFramePerfect"]
 
             # update visual data
             stringWidth = font.Font().measure(trimData["description"])
@@ -562,7 +563,7 @@ class TrimScene(tk.Frame):
             self.filename.config(text=f"Status: {trimmedText}{'...' if font.Font().measure(trimData['description']) > trimWidth else ''}")
 
             self.remainder.config(text=f"Remaining: {len(self.mainApp.trimData) - self.videoCount}")
-            self.log(f"Trimming ({self.videoCount+1}) \"{trimData['description']}\" [{round(startTime)} - {round(endTime)}]")
+            self.log(f"Trimming ({self.videoCount+1}) \"{trimData['description']}\" [{round(startTime)} - {round(endTime)}] {'and re-encoding' if isFramePerfect else ''}")
             self.filename.update()
             self.remainder.update()
             self.output.output.update()
@@ -571,7 +572,7 @@ class TrimScene(tk.Frame):
             isVideoProcessed = False
             
             try:
-                logic.trimVideo(inputPath=inputPath, outputPath=outputPath, startTime=startTime, endTime=endTime)
+                logic.trimVideo(inputPath=inputPath, outputPath=outputPath, startTime=startTime, endTime=endTime, isFramePerfect=isFramePerfect, fullVideoLength=trimData['fullVideoLength'])
                 isVideoProcessed = True
             except OSError as e:
                 self.log("[ERROR] Insufficient disk space")
@@ -579,8 +580,12 @@ class TrimScene(tk.Frame):
                 # delete unprocessed file if needed
                 if os.path.exists(outputPath):
                     os.remove(outputPath)
-            except:
-                self.log("[ERROR] Trimming failed")
+            except Exception as e:
+                self.log(f"[ERROR] Trimming failed: {e}")
+
+                # delete unprocessed file if needed
+                if os.path.exists(outputPath):
+                    os.remove(outputPath)
 
             # prompt to try again if not completed
             if not isVideoProcessed:
@@ -672,6 +677,6 @@ if __name__ == "__main__":
 
     app = MainApp(root)
     app.pack(side="left")
-    app.setScene(Scene.SCENE_TRIM)
+    app.setScene(Scene.SCENE_CLIPS)
 
     root.mainloop()
