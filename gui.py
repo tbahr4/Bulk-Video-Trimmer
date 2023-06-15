@@ -6,6 +6,10 @@ import video
 from tkinter import filedialog
 from PIL import Image, ImageTk
 from pathvalidate import sanitize_filepath
+from tkinter import ttk
+import logic
+from tkinter import font
+import os
 
 bg = "#eeeeee"
 
@@ -65,8 +69,11 @@ class MainApp(tk.Frame):
             self.root.unbind('<Button-1>')
             self.root.unbind('<KeyPress>')
 
-            self.scene = TrimScene(self)
+            self.scene = TrimScene(self, mainApp=self)
         self.scene.pack()
+    
+    def closeApp(self):
+        self.parent.destroy()
             
 
 
@@ -380,8 +387,13 @@ class NextButton(tk.Frame):
         self.button.config(state="disabled")
         self.clipScene.footerBar.descBar.box.config(state="disabled")
 
+        # sanitize input once more
+        san_text = sanitize_filepath(self.clipScene.footerBar.descBar.boxContents.get())
+        self.clipScene.footerBar.descBar.boxContents.set(san_text)
+
+
         # save picked times
-        self.mainApp.trimData.append((self.clipScene.footerBar.descBar.boxContents.get(), self.clipScene.leftTime, self.clipScene.rightTime))
+        self.mainApp.trimData.append(dict([("description", self.clipScene.footerBar.descBar.boxContents.get()), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime)]))
 
         if self.clipScene.currentVideo == self.clipScene.totalVideos:  # done
             self.mainApp.setScene(Scene.SCENE_TRIM)
@@ -440,18 +452,47 @@ class DescriptionBar(tk.Frame):
         #
         maxLength = 100
         text = self.boxContents.get()
+        if text == "":
+            self.nextButton.button.config(state="disabled")
+            return
 
         # remove excess text
-        if len(text) > maxLength: self.boxContents.set(text[:maxLength])       # do not register
+        if len(text) > maxLength: 
+            text = text[:maxLength]
+            self.boxContents.set(text)       # do not register
         
         # remove invalid characters
-        san_text = sanitize_filepath(text)
-        if san_text != text: self.boxContents.set(san_text)
+
+        # remove slashes
+        builtString = ""
+        for char in text:
+            if char not in ["/","\\"]: builtString += char
+        if text != builtString:
+            text = builtString
+            cursor = self.box.index(tk.INSERT)
+            self.box.icursor(max(0, cursor-1))
+
+
+        textRetain = text + "Z"     # retains all spaces at end of string
+        san_text = sanitize_filepath(textRetain)
+        san_text = san_text[:-1]
+
+        cursor = self.box.index(tk.INSERT) + (1 if len(san_text) == len(text) else 0)
+        self.boxContents.set(san_text)
+        self.box.icursor(min(max(0, cursor-1), len(san_text)))
+
 
         # update values
         #
+        
+        # enable if nonspace char exists in text field
+        hasNonSpaceChar = False
+        for char in san_text:
+            if not char.isspace():
+                hasNonSpaceChar = True
+                break
 
-        self.nextButton.button.config(state="normal" if len(san_text) > 0 else "disabled")
+        self.nextButton.button.config(state="normal" if len(san_text) > 0 and hasNonSpaceChar else "disabled")
 
     def ignore(self, event):
         """
@@ -471,17 +512,150 @@ class FooterBar(tk.Frame):
         self.nextButton.grid(column=1, row=0)
 
 class TrimScene(tk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, mainApp: MainApp):
         super().__init__(parent)
         self.parent = parent
-       # self.parent.parent.geometry("400x100")
+        self.mainApp = mainApp
+        self.parent.parent.geometry("400x260")
+        self.root = parent.parent
+        font = ("Helvetica", 10)
 
         # instances
+        self.filename = tk.Label(self, text="Status: Waiting", font=("Helvetica", 9))
+        self.filename.pack(anchor="w")
+
+        self.remainder = tk.Label(self, text=f"Remaining: {len(self.mainApp.trimData)}", font=("Helvetica", 9))
+        self.remainder.pack(anchor="w")
+
+        self.outputHeader = tk.Label(self, text="Output", font=font)
+        self.outputHeader.pack(anchor="w")
+
+        self.output = OutputConsole(self)
+        self.output.pack(fill="both", expand=True)
+
+        self.button = tk.Button(self, command=self.buttonOnClick, text="Start", width=9, height=1)
+        self.button.pack(anchor="e")
+
+        self.progressBar = ProgressBar(self)
+        self.progressBar.pack(side="bottom", pady=0)
+
+        # properties
+        self.videoCount = 0
+        self.a = False
+    def buttonOnClick(self):
+        self.button.config(text="Start", state="disabled")
+
+        # perform trim on all videos
+        for trimData in self.mainApp.trimData[self.videoCount:]:
+            inputPath = self.mainApp.videoPaths[self.videoCount]
+            outputPath = f"{self.mainApp.destFolder}/({self.videoCount+1}) {trimData['description']}.mp4"
+            startTime = round(trimData["startTime"] / 1000, 6)
+            endTime = round(trimData["endTime"] / 1000, 6)
+
+            # update visual data
+            stringWidth = font.Font().measure(trimData["description"])
+            trimmedText = trimData["description"]
+            trimWidth = 450
+            while stringWidth > trimWidth:
+                trimmedText = trimmedText[:-1]
+                stringWidth = font.Font().measure(trimmedText)
+            self.filename.config(text=f"Status: {trimmedText}{'...' if font.Font().measure(trimData['description']) > trimWidth else ''}")
+
+            self.remainder.config(text=f"Remaining: {len(self.mainApp.trimData) - self.videoCount}")
+            self.log(f"Trimming ({self.videoCount+1}) \"{trimData['description']}\" [{round(startTime)} - {round(endTime)}]")
+            self.filename.update()
+            self.remainder.update()
+            self.output.output.update()
+            self.root.update_idletasks()
+
+            isVideoProcessed = False
+            
+            try:
+                logic.trimVideo(inputPath=inputPath, outputPath=outputPath, startTime=startTime, endTime=endTime)
+                isVideoProcessed = True
+            except OSError as e:
+                self.log("[ERROR] Insufficient disk space")
+
+                # delete unprocessed file if needed
+                if os.path.exists(outputPath):
+                    os.remove(outputPath)
+            except:
+                self.log("[ERROR] Trimming failed")
+
+            # prompt to try again if not completed
+            if not isVideoProcessed:
+                self.button.config(state="normal", text="Try Again")
+                return
+
+
+            # done, update progress bar
+            self.videoCount += 1
+            self.progressBar.bar["value"] = self.videoCount / len(self.mainApp.trimData) * 100
+            self.progressBar.update()
+            self.root.update_idletasks()
+
+        # update visual data
+        self.filename.config(text="Status: Done")
+        self.remainder.config(text="Remaining: 0")
+        self.log("Done.")
+
+        # update button to close
+        self.button.config(state="normal", text="Close", command=self.mainApp.closeApp)
+
+    def log(self, message: str):
+        """
+            Displays the log message to both the console and screen
+        """
+        print(message)      # print to console 
+
+        # print to gui console
+        self.output.output.configure(state="normal")
+        self.output.output.insert(tk.END, f"{message}\n")        
+        self.output.output.configure(state="disabled")
+        self.output.output.see(tk.END)
+            
+        
         
 
-        # build
         
+        
+class OutputConsole(tk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+        font = ("Helvetica", 10)
 
+        # instances
+        self.scrollBar = tk.Scrollbar(self, orient="vertical")
+        self.scrollBar.pack(side="right", fill="y")
+
+        self.output = tk.Text(self, state="disabled", font=font, wrap="none", height=10)
+        self.output.pack(side="left", fill="both", expand=True)
+
+        self.output.config(yscrollcommand=self.scrollBar.set)
+        self.scrollBar.configure(command=self.output.yview)
+
+class ProgressBar(tk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        # styling for the progress bar
+        style = ttk.Style()
+        style.theme_create("style", parent="default", settings={
+            "TProgressbar": {
+                "configure": {
+                    "background": "lime",
+                    "troughcolor": "grey",
+                    "borderwidth": 1,
+                    "thickness": 2
+                }
+            }
+        })
+        style.theme_use("style")
+
+        self.bar = ttk.Progressbar(self, mode="determinate", maximum=100, length=400)
+        self.bar.pack()
+
+        
 
 
 
@@ -498,6 +672,6 @@ if __name__ == "__main__":
 
     app = MainApp(root)
     app.pack(side="left")
-    app.setScene(Scene.SCENE_CLIPS)
+    app.setScene(Scene.SCENE_TRIM)
 
     root.mainloop()

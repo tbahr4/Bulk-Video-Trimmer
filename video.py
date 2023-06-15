@@ -342,7 +342,7 @@ class VideoPlayer(tk.Frame):
         timeSinceLastVolChange = time.time() - self.lastVolumeChange
         timeSinceLastVolHover = time.time() - max(self.volumeBar.lastVolumeHover, self.actionBar.bVolume.lastVolumeHover)
 
-        if (timeSinceLastVolHover < 1 or timeSinceLastVolChange < 1):
+        if (timeSinceLastVolHover < 1 or timeSinceLastVolChange < 1) and not self.bFullscreen.isFullscreen:
             self.isVolumeBarVisible = True
             self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + 8, y=(self.screenHeight - 55) * (self.fullscreenScaleY if self.bFullscreen.isFullscreen else 1) + (22 if self.bFullscreen.isFullscreen else 0), width=self.volumeBar.width, height=self.volumeBar.height)
         else:   # hide
@@ -361,6 +361,7 @@ class VideoPlayer(tk.Frame):
             if self.enableRestrictedPlayback and round(self.player.get_position(), 6) >= round(self.restrictRight / duration, 6): 
                 if not self.bPause.isPaused: self.bPause.togglePause() 
                 self._setPlayerPosition(self.restrictRight / duration) 
+
 
         # Schedule the next update
         self.after(10, self._update)
