@@ -58,7 +58,7 @@ class MainApp(tk.Frame):
             self.scene = InitialScene(self)
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__":
-                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test-long.mp4',)
+                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test-long.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test.mp4')
                 self.destFolder = r"C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/TestOutput"
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder)
         elif scene == Scene.SCENE_TRIM:
@@ -222,6 +222,7 @@ class ClipScene(tk.Frame):
         self.actionBar = ActionBar(self)
         self.video = video.VideoPlayer(self.root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40, restrictLeftButton=self.actionBar.setLeft, restrictRightButton=self.actionBar.setRight, unrestrictLeftButton=self.actionBar.resetLeft, unrestrictRightButton=self.actionBar.resetRight, clipScene=self)
         self.footerBar = FooterBar(self, clipScene=self, mainApp=self.parent)
+        self.framePerfectButton = FramePerfectButton(self)
 
         # add listeners
         self.root.bind('<Button-1>', self.onClick)
@@ -239,7 +240,9 @@ class ClipScene(tk.Frame):
         actionBarWidth = buttonSize * 2 + 200
         self.actionBar.place(x=0, y=600, width=actionBarWidth, height=buttonSize + 20)
 
+        self.framePerfectButton.place(x=actionBarWidth, y=614, width=200, height=40)
         self.footerBar.place(x=video.WINDOW_WIDTH-482, y=614, width=video.WINDOW_WIDTH, height=40)
+
 
         # setup video
         self.video.openVideo(videoPaths[self.currentVideo-1])
@@ -271,6 +274,16 @@ class ClipScene(tk.Frame):
         if not self.footerBar.descBar.isBoxFocused:
             self.video.onKeyPress(event)
 
+class FramePerfectButton(tk.Frame):
+    """
+        Toggleable button that specifies that the given clip should be frame perfect
+    """
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.isSet = tk.IntVar()
+
+        self.button = tk.Checkbutton(self, text="Enable frame perfect trim (SLOW)", variable=self.isSet)
+        self.button.pack()
 
 class ResetButton(tk.Frame):
     """
@@ -393,7 +406,7 @@ class NextButton(tk.Frame):
 
 
         # save picked times
-        self.mainApp.trimData.append(dict([("description", self.clipScene.footerBar.descBar.boxContents.get()), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime), ("fullVideoLength", self.clipScene.video.player.get_length()), ("isFramePerfect", self.clipScene.framePerfectButton.isSet)]))
+        self.mainApp.trimData.append(dict([("description", self.clipScene.footerBar.descBar.boxContents.get()), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime), ("fullVideoLength", self.clipScene.video.player.get_length()), ("isFramePerfect", self.clipScene.framePerfectButton.isSet.get() == 1)]))
 
         if self.clipScene.currentVideo == self.clipScene.totalVideos:  # done
             self.mainApp.setScene(Scene.SCENE_TRIM)
@@ -409,6 +422,9 @@ class NextButton(tk.Frame):
             filename = self.mainApp.videoPaths[self.clipScene.currentVideo-1].split("/")[-1][:100]
             self.clipScene.tFilename.config(text=filename)
             self.clipScene.footerBar.descBar.boxContents.set("")
+
+            # reset frame perfect check
+            self.clipScene.framePerfectButton.isSet.set(0)
 
             # replace file count to fit
             self.mainApp.root.update()
