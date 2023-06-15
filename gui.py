@@ -10,6 +10,7 @@ from tkinter import ttk
 import logic
 from tkinter import font
 import os
+from tkinter import messagebox
 
 bg = "#eeeeee"
 
@@ -45,6 +46,7 @@ class MainApp(tk.Frame):
 
 
     def setScene(self, scene: Scene):
+        self.root.config(menu=tk.Menu(self.root)) # remove menu
         if self.scene: self.scene.pack_forget()
 
         if scene == Scene.SCENE_INITIAL:
@@ -116,7 +118,6 @@ class InitialScene(tk.Frame):
 
         # update button
         self.beginButton.setEnabled(self.hasFolder1 and self.hasFolder2)
-        
         
 
 class FileSelection(tk.Frame):
@@ -216,6 +217,13 @@ class ClipScene(tk.Frame):
         self.totalVideos = len(videoPaths)
 
         # instances
+        self.menuBar = tk.Menu(self)
+        self.menu = tk.Menu(self.menuBar, tearoff=0)
+        self.menu.add_command(label="Controls", command=self.displayVideoControls)
+        self.menuBar.add_cascade(label="Menu", menu=self.menu)
+        self.parent.root.config(menu=self.menuBar)
+    
+
         self.background = tk.Canvas(self, background=bg, width=video.WINDOW_WIDTH, height=video.WINDOW_HEIGHT, borderwidth=0, highlightthickness=0)
         self.tFilename = tk.Label(self, text="None")
         self.tFileCount = tk.Label(self, text="0 of 0")
@@ -274,6 +282,12 @@ class ClipScene(tk.Frame):
         if not self.footerBar.descBar.isBoxFocused:
             self.video.onKeyPress(event)
 
+    def displayVideoControls(self):
+        controls = {"Space": "Play/Pause", "\u2190": "Seek left", "\u2192": "Seek right", "\u2191": "Volume up", "\u2193": "Volume down", "F": "Fullscreen", "Esc": "Leave fullscreen", "Home": "Seek to start", "End": "Seek to last 20s", ",": "Rewind 1 frame", ".": "Seek 1 frame ahead", "M": "Toggle mute", "0-9": "Seek", "E/R": "Set trim position", "Ctrl+E/R": "Reset trim position", "Shift+E/R": "Shift current trim position"}
+        maxLen = 20
+        tab = '\t'
+        messagebox.showinfo("Video Controls", "".join(f"{key:{6}}\t{tab if len(key) <= 8 else ''}{value}\n" for key, value in controls.items()))       
+
 class FramePerfectButton(tk.Frame):
     """
         Toggleable button that specifies that the given clip should be frame perfect
@@ -282,7 +296,7 @@ class FramePerfectButton(tk.Frame):
         super().__init__(parent)
         self.isSet = tk.IntVar()
 
-        self.button = tk.Checkbutton(self, text="Enable frame perfect trim (SLOW)", variable=self.isSet)
+        self.button = tk.Checkbutton(self, text="Enable frame perfect trim (slow)", variable=self.isSet)
         self.button.pack()
 
 class ResetButton(tk.Frame):
