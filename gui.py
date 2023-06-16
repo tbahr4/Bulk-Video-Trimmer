@@ -52,7 +52,7 @@ class MainApp(tk.Frame):
 
 
     def setScene(self, scene: Scene):
-        self.root.config(menu=tk.Menu(self.root)) # remove menu
+        self.root.config(menu="") # remove menu
         if self.scene: self.scene.pack_forget()
 
         if scene == Scene.SCENE_INITIAL:
@@ -703,7 +703,7 @@ class ProgressBar(tk.Frame):
 #
 if __name__ == "__main__":
     root = tk.Tk()
-    root.title("Video Trimmer")
+    root.title("Bulk Video Trimmer")
     root.geometry("400x100")
     root.resizable(width=False, height=False)
     root.iconbitmap("images/logo.ico")

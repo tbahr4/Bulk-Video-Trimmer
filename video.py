@@ -972,7 +972,7 @@ class ProgressBar(tk.Frame):
 
 if __name__ == "__main__":
     root = tk.Tk()
-    root.title("Video Trimmer")
+    root.title("Bulk Video Trimmer")
     root.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
     root.resizable(width=False, height=False)
 
