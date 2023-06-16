@@ -1,3 +1,9 @@
+#
+# logic.py
+#
+# Contains the logic necessary to trim video files
+#
+
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 import multiprocessing
 import subprocess

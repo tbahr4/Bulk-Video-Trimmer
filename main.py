@@ -1,3 +1,9 @@
+#
+# main.py
+#
+# The main file for the trimmer application
+#
+
 import tkinter as tk
 import gui
 

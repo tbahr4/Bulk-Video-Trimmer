@@ -1,3 +1,9 @@
+#
+# gui.py
+#
+# Contains the entire application GUI and each scene setup
+#
+
 import tkinter as tk
 from tkinter import StringVar
 from tkinter import filedialog

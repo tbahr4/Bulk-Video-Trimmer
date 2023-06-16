@@ -1,3 +1,8 @@
+#
+# video.py
+#
+# Contains a VideoPlayer class to encapsulate everything needed to create a video player
+#
 
 import tkinter as tk
 import vlc
