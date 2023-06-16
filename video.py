@@ -13,7 +13,7 @@ WINDOW_WIDTH = 1024
 
 
 class VideoPlayer(tk.Frame):
-    def __init__(self, parent, screenWidth: int, screenHeight: int, playOnOpen: bool, backgroundHeight: int, restrictLeftButton = None, restrictRightButton = None, unrestrictLeftButton = None, unrestrictRightButton = None, clipScene = None):
+    def __init__(self, parent, screenWidth: int, screenHeight: int, playOnOpen: bool, backgroundHeight: int, restrictLeftButton = None, restrictRightButton = None, unrestrictLeftButton = None, unrestrictRightButton = None, clipScene = None, menuBar = None):
         """
             Params:
             screenWidth: the width of the video screen
@@ -39,6 +39,7 @@ class VideoPlayer(tk.Frame):
         self.unrestrictLeftButton = unrestrictLeftButton
         self.unrestrictRightButton = unrestrictRightButton
         self.clipScene = clipScene
+        self.menuBar = menuBar
 
         # properties
         self.playOnOpen = playOnOpen
@@ -524,6 +525,10 @@ class FullscreenButton(tk.Frame):
             video.progressBar.width = video.parent.winfo_screenwidth()
             video.progressBar.place(x=0, y=video.parent.winfo_screenheight() - video.progressBarHeight)
             video.progressBar.canvas.config(width=video.parent.winfo_screenwidth())
+
+            # menubar
+            self.root.config(menu=tk.Menu(self.root)) # remove menu
+            
             
 
         else:
@@ -544,6 +549,10 @@ class FullscreenButton(tk.Frame):
             video.progressBar.width = data[0]
             video.progressBar.place(x=0, y=video.screenHeight)
             video.progressBar.canvas.config(width=data[1])
+
+            # menubar
+            self.root.config(menu=video.menuBar)
+            
         
         
 

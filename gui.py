@@ -59,9 +59,6 @@ class MainApp(tk.Frame):
 
             self.scene = InitialScene(self)
         elif scene == Scene.SCENE_CLIPS:
-            if __name__ == "__main__":
-                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test-long.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test.mp4')
-                self.destFolder = r"C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/TestOutput"
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder)
         elif scene == Scene.SCENE_TRIM:
             if type(self.scene) == ClipScene:
@@ -228,7 +225,7 @@ class ClipScene(tk.Frame):
         self.tFilename = tk.Label(self, text="None")
         self.tFileCount = tk.Label(self, text="0 of 0")
         self.actionBar = ActionBar(self)
-        self.video = video.VideoPlayer(self.root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40, restrictLeftButton=self.actionBar.setLeft, restrictRightButton=self.actionBar.setRight, unrestrictLeftButton=self.actionBar.resetLeft, unrestrictRightButton=self.actionBar.resetRight, clipScene=self)
+        self.video = video.VideoPlayer(self.root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40, restrictLeftButton=self.actionBar.setLeft, restrictRightButton=self.actionBar.setRight, unrestrictLeftButton=self.actionBar.resetLeft, unrestrictRightButton=self.actionBar.resetRight, clipScene=self, menuBar=self.menuBar)
         self.footerBar = FooterBar(self, clipScene=self, mainApp=self.parent)
         self.framePerfectButton = FramePerfectButton(self)
 
@@ -707,6 +704,6 @@ if __name__ == "__main__":
 
     app = MainApp(root)
     app.pack(side="left")
-    app.setScene(Scene.SCENE_CLIPS)
+    app.setScene(Scene.SCENE_INITIAL)
 
     root.mainloop()
