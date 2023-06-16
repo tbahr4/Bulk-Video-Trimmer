@@ -6,3 +6,6 @@ gui-test.py
 /images/inv
 *.avi
 /TestOutput
+/build
+/dist
+*.spec
