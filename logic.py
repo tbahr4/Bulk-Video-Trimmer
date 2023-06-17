@@ -8,12 +8,17 @@ from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 import multiprocessing
 import subprocess
 import os
+import tempfile
 
 
-def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float, isFramePerfect: bool, fullVideoLength: float):
+def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float, isFramePerfect: bool, fullVideoLength: float, trimScene = None):
     """
         Trims the provided video and writes it to outputPath based on given params
     """
+    # start by checking for any video already in the output
+    if os.path.exists(outputPath):
+        raise Exception(f"Video already exists: [{outputPath}]")
+
     if isFramePerfect:
         # Get the number of CPU cores
         threads = multiprocessing.cpu_count()       # logical processers, not physical cores
@@ -35,7 +40,7 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
             '-b:a', '320k',             # set audio bitrate
             str(outputPath)             # set output file
         ]
-        subprocess.run(command)
+        subprocess.run(command, creationflags=subprocess.CREATE_NO_WINDOW)
 
     else:
         # since this is not frame perfect, need to grab adjactent keyframes
@@ -52,10 +57,9 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
 
         # get keyframe start time
         #
-
         keyStartTime = None
         while keyStartTime == None:
-            result = subprocess.run(command, capture_output=True, text=True)
+            result = subprocess.run(command, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
 
             # clean output
             output = result.stdout.split('\n')[:-1]
@@ -86,15 +90,13 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
             command[10] = f'{startTime-interval}%{startTime-interval+5}'
 
 
-
         # get keyframe end time
         #
-        
         interval = 5
         command[10] = f'{endTime}%{endTime+interval}'
         keyEndTime = None
         while keyEndTime == None:
-            result = subprocess.run(command, capture_output=True, text=True)
+            result = subprocess.run(command, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
             
             # clean output
             output = result.stdout.split('\n')[:-1]
@@ -122,9 +124,7 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
             interval += 5
             command[10] = f'{endTime+interval-5}%{endTime+interval}'
 
-        print(startTime, endTime)
-        print(keyStartTime, keyEndTime)
         # extract on the corrected times
-        ffmpeg_extract_subclip(inputPath, keyStartTime-.1, keyEndTime+.1, targetname=outputPath)
-    
+        command = ['ffmpeg', '-loglevel', 'quiet', '-i', inputPath, '-ss', str(keyStartTime-.1), '-to', str(keyEndTime+.1), '-c', 'copy', outputPath]
+        subprocess.run(command, creationflags=subprocess.CREATE_NO_WINDOW)
     

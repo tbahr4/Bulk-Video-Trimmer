@@ -605,20 +605,14 @@ class TrimScene(tk.Frame):
             isVideoProcessed = False
             
             try:
-                logic.trimVideo(inputPath=inputPath, outputPath=outputPath, startTime=startTime, endTime=endTime, isFramePerfect=isFramePerfect, fullVideoLength=trimData['fullVideoLength'])
+                logic.trimVideo(inputPath=inputPath, outputPath=outputPath, startTime=startTime, endTime=endTime, isFramePerfect=isFramePerfect, fullVideoLength=trimData['fullVideoLength'], trimScene=self)
                 isVideoProcessed = True
-            except OSError as e:
-                self.log("[ERROR] Insufficient disk space")
-
-                # delete unprocessed file if needed
-                if os.path.exists(outputPath):
-                    os.remove(outputPath)
             except Exception as e:
                 self.log(f"[ERROR] Trimming failed: {e}")
 
                 # delete unprocessed file if needed
                 if os.path.exists(outputPath):
-                    os.remove(outputPath)
+                    self.log(f"[WARNING] File remains in directory {outputPath}")
 
             # prompt to try again if not completed
             if not isVideoProcessed:
