@@ -12,12 +12,21 @@ RequestExecutionLevel admin
 
 ; Installer sections
 Section
+    ; Set output path
+    SetOutPath $TEMP   
+    
+    ; Copy the requirements.txt file
+    File "requirements.txt"
+
     ; Install dependencies
-    ExecWait 'cmd /k pip install -r requirements.txt'
+    ExecWait 'pip install -r requirements.txt'
+
+    ; Delete the requirements.txt file
+    Delete "$TEMP\requirements.txt"
 
     ; Set output path
-    SetOutPath $INSTDIR
-    
+    SetOutPath $INSTDIR   
+
     ; Install Python app
     File "dist\Bulk Video Trimmer.exe"
 
@@ -41,7 +50,9 @@ SectionEnd
 Section "Desktop Shortcut"
     SetShellVarContext all
     SetOutPath $INSTDIR
-    CreateShortcut "$PROFILE\Desktop\Bulk Video Trimmer.lnk" "$INSTDIR\Bulk Video Trimmer.exe"
+    SetShellVarContext current
+    ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" "Desktop"
+    CreateShortcut "$0\Bulk Video Trimmer.lnk" "$INSTDIR\Bulk Video Trimmer.exe"
 SectionEnd
 
 ; Uninstaller section
@@ -56,7 +67,9 @@ Section "Uninstall"
     RMDir "$INSTDIR"
 
     ; Remove the desktop shortcut
-    Delete "$PROFILE\Desktop\Bulk Video Trimmer.lnk"
+    SetShellVarContext current
+    ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" "Desktop"
+    Delete "$0\Bulk Video Trimmer.lnk"
 
     ; Remove the uninstaller registry entry
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Bulk Video Trimmer"

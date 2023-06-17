@@ -13,3 +13,10 @@ Descriptive console output:
 
 ![Trim Scene](github/TrimScene.png)
 
+# Installation
+1. Install vlc [recommended version 3.0.18+] (On install, remove all optional settings and change ProgramFile exe name if you don't want to see it)
+2. Install python3.11 and add USER\AppData\Local\Programs\Python\Python311 to PATH
+3. Use BVTsetup.exe 
+
+OR manually using the following:
+pyinstaller --add-data "images;images" -F -w --additional-hooks-dir=. -i images\logo.ico main.py
