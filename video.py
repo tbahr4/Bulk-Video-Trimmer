@@ -125,12 +125,7 @@ class VideoPlayer(tk.Frame):
     def onKeyPress(self, event):
         key = event.keysym
         if key == "space":
-            self.bPause.togglePause()       
-
-            # do not toggle pause if in restricted mode and past boundary
-            while self.player.get_state() == vlc.State.Opening: pass
-            if self.enableRestrictedPlayback and (round(self.player.get_position(), 6) >= round(self.restrictRight / self.player.get_length(), 6) or round(self.player.get_position(), 6) < round(self.restrictLeft / self.player.get_length(), 6)):  
-                self._setPlayerPosition(0)   # set back to start  
+            self.bPause.onClick()
         elif key == "Left":
             self.seek(-10000)
         elif key == "Right":
@@ -742,11 +737,18 @@ class PauseButton(tk.Frame):
         self.playImage = ImageTk.PhotoImage(self.imPlay)
         self.pauseImage = ImageTk.PhotoImage(self.imPause)
 
-        self.bPause = tk.Button(self, width=size, command=self.togglePause, image=self.playImage if startPaused else self.pauseImage, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
+        self.bPause = tk.Button(self, width=size, command=self.onClick, image=self.playImage if startPaused else self.pauseImage, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
         self.bPause.image = self.playImage if startPaused else self.pauseImage
 
         self.bPause.pack()
 
+    def onClick(self):
+        self.togglePause()       
+        
+        # reset on past boundary
+        while self.player.get_state() == vlc.State.Opening: pass
+        if self.parent.parent.enableRestrictedPlayback and (round(self.player.get_position(), 6) >= round(self.parent.parent.restrictRight / self.player.get_length(), 6) or round(self.player.get_position(), 6) < round(self.parent.parent.restrictLeft / self.player.get_length(), 6)):  
+            self.parent.parent._setPlayerPosition(0)   # set back to start  
 
     def togglePause(self):
         if not self.parent.parent.isVideoOpened: return
