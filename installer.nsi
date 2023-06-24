@@ -19,7 +19,7 @@ Section
     File "requirements.txt"
 
     ; Install dependencies
-    ExecWait 'pip install -r requirements.txt'
+    ExecWait 'py -3.11 -m pip install -r requirements.txt'
 
     ; Delete the requirements.txt file
     Delete "$TEMP\requirements.txt"
