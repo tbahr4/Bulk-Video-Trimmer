@@ -66,7 +66,7 @@ class MainApp(tk.Frame):
             self.scene = InitialScene(self)
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__":
-                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/multitrack.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/multitrack.mp4')
+                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test2.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test3.mp4')
                 self.destFolder = r"C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/TestOutput"
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder)
         elif scene == Scene.SCENE_TRIM:
@@ -237,12 +237,18 @@ class ClipScene(tk.Frame):
         self.controlMenu.add_command(label="Controls", command=self.displayVideoControls)
 
         # options
+        # alternate track
         cbox_AltTrack = tk.BooleanVar()
         def onClick_AltTrack():
             isEnabled = cbox_AltTrack.get()
             if self.video.player.audio_get_track_count() >= 3:
+                    self.optionMenu.entryconfigure("Alternate audio track", state='normal')
                     self.video.player.audio_set_track(2 if isEnabled else 1) 
+            else: 
+                cbox_AltTrack.set(False)
+                self.optionMenu.entryconfigure("Alternate audio track", state='disabled')
         self.optionMenu.add_checkbutton(label="Alternate audio track", variable=cbox_AltTrack, command=onClick_AltTrack)
+        
         
         # pack option functions into list for later
         self.optionFunctions = [onClick_AltTrack]
