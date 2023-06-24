@@ -371,10 +371,15 @@ class VideoPlayer(tk.Frame):
                 self.actionBar.playbackTimer.setTime(self.player.get_time() / 1000)
 
         # pause if in restricted mode and past boundary
+        # or replay in autoplay mode
         if duration != 0:
             if self.enableRestrictedPlayback and round(self.player.get_position(), 6) >= round(self.restrictRight / duration, 6): 
-                if not self.bPause.isPaused: self.bPause.togglePause() 
-                self._setPlayerPosition(self.restrictRight / duration) 
+                if self.clipScene.optionBools["LoopPlayback"].get():
+                    if not self.progressBar.isClicking and not self.bPause.isPaused:
+                        self._setPlayerPosition(0)
+                else:
+                   if not self.bPause.isPaused: self.bPause.togglePause() 
+                   self._setPlayerPosition(self.restrictRight / duration) 
 
 
         # Schedule the next update
