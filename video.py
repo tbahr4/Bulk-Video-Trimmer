@@ -10,6 +10,7 @@ import threading
 import time
 import gui
 from PIL import Image, ImageTk
+import os
 
 WINDOW_HEIGHT = 649
 WINDOW_WIDTH = 1024
@@ -271,6 +272,14 @@ class VideoPlayer(tk.Frame):
             self._setPlayerPosition(newTime/duration)
 
     def openVideo(self, filepath: str):
+        # check if video exists
+        if not os.path.exists(filepath):
+            print(f"Could not open video [{filepath}]")
+            return
+        
+        # wait until video auto-pauses
+        while self.player.is_playing(): pass
+
         # reset values
         self.lastEndStateTime = 0
         self.duration = 0
@@ -294,6 +303,10 @@ class VideoPlayer(tk.Frame):
 
         self.isVideoOpened = True
         self.unrestrictPlayback()
+
+        # update options
+        if self.clipScene != None:
+            self.clipScene.updateOptions()
 
 
     def play(self):
@@ -979,7 +992,7 @@ if __name__ == "__main__":
     video = VideoPlayer(root, screenWidth=WINDOW_WIDTH, screenHeight=int(root.winfo_screenheight()/2), playOnOpen=False, backgroundHeight=40)
     video.place(x=0,y=0, width=root.winfo_screenwidth(), height=root.winfo_screenheight())
 
-
+    
     video.openVideo("test-long.mp4")
     video.scheduleUpdates()
 

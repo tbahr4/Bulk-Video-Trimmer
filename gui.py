@@ -65,6 +65,9 @@ class MainApp(tk.Frame):
 
             self.scene = InitialScene(self)
         elif scene == Scene.SCENE_CLIPS:
+            if __name__ == "__main__":
+                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/multitrack.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/multitrack.mp4')
+                self.destFolder = r"C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/TestOutput"
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder)
         elif scene == Scene.SCENE_TRIM:
             if type(self.scene) == ClipScene:
@@ -219,21 +222,37 @@ class ClipScene(tk.Frame):
         self.currentVideo = 1
         self.totalVideos = len(videoPaths)
 
-        # instances
-        self.menuBar = tk.Menu(self)
-        self.menu = tk.Menu(self.menuBar, tearoff=0)
-        self.menu.add_command(label="Controls", command=self.displayVideoControls)
-        self.menuBar.add_cascade(label="Menu", menu=self.menu)
-        self.parent.root.config(menu=self.menuBar)
-    
-
+        # video and surrounding instances
         self.background = tk.Canvas(self, background=bg, width=video.WINDOW_WIDTH, height=video.WINDOW_HEIGHT, borderwidth=0, highlightthickness=0)
         self.tFilename = tk.Label(self, text="None")
         self.tFileCount = tk.Label(self, text="0 of 0")
         self.actionBar = ActionBar(self)
-        self.video = video.VideoPlayer(self.root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40, restrictLeftButton=self.actionBar.setLeft, restrictRightButton=self.actionBar.setRight, unrestrictLeftButton=self.actionBar.resetLeft, unrestrictRightButton=self.actionBar.resetRight, clipScene=self, menuBar=self.menuBar)
         self.footerBar = FooterBar(self, clipScene=self, mainApp=self.parent)
         self.framePerfectButton = FramePerfectButton(self)
+
+        # instances
+        self.menuBar = tk.Menu(self)
+        self.controlMenu = tk.Menu(self.menuBar, tearoff=0)
+        self.optionMenu = tk.Menu(self.menuBar, tearoff=0)
+        self.controlMenu.add_command(label="Controls", command=self.displayVideoControls)
+
+        # options
+        cbox_AltTrack = tk.BooleanVar()
+        def onClick_AltTrack():
+            isEnabled = cbox_AltTrack.get()
+            if self.video.player.audio_get_track_count() >= 3:
+                    self.video.player.audio_set_track(2 if isEnabled else 1) 
+        self.optionMenu.add_checkbutton(label="Alternate audio track", variable=cbox_AltTrack, command=onClick_AltTrack)
+        
+        # pack option functions into list for later
+        self.optionFunctions = [onClick_AltTrack]
+
+        self.menuBar.add_cascade(label="Menu", menu=self.controlMenu)
+        self.menuBar.add_cascade(label="Options", menu=self.optionMenu)
+        self.parent.root.config(menu=self.menuBar)
+
+        # create video player
+        self.video = video.VideoPlayer(self.root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40, restrictLeftButton=self.actionBar.setLeft, restrictRightButton=self.actionBar.setRight, unrestrictLeftButton=self.actionBar.resetLeft, unrestrictRightButton=self.actionBar.resetRight, clipScene=self, menuBar=self.menuBar)
 
         # add listeners
         self.root.bind('<Button-1>', self.onClick)
@@ -269,6 +288,14 @@ class ClipScene(tk.Frame):
         # update times to default
         self.leftTime = 0
         self.rightTime = self.video.player.get_length()
+
+    def updateOptions(self):
+        """
+            Updates the currently set options on the current video
+        """
+        for fcn in self.optionFunctions:
+            fcn()
+
 
     def onClick(self, event):
         """
@@ -405,6 +432,7 @@ class ActionBar(tk.Frame):
 class NextButton(tk.Frame):
     def __init__(self, parent, clipScene: ClipScene, mainApp: MainApp):
         super().__init__(parent)
+        self.parent = parent
         self.clipScene = clipScene
         self.mainApp = mainApp
 
@@ -413,6 +441,10 @@ class NextButton(tk.Frame):
         self.button.pack()
 
     def onClick(self):
+        # pause video
+        if not self.parent.parent.video.actionBar.bPause.isPaused:
+            self.parent.parent.video.actionBar.bPause.togglePause()
+
         # disable double press
         self.button.config(state="disabled")
         self.clipScene.footerBar.descBar.box.config(state="disabled")
@@ -537,6 +569,7 @@ class DescriptionBar(tk.Frame):
 class FooterBar(tk.Frame):
     def __init__(self, parent, clipScene: ClipScene, mainApp: MainApp):
         super().__init__(parent)
+        self.parent = parent
 
         self.nextButton = NextButton(self, clipScene=clipScene, mainApp=mainApp)
         self.descBar = DescriptionBar(self, nextButton=self.nextButton)
@@ -704,6 +737,6 @@ if __name__ == "__main__":
 
     app = MainApp(root)
     app.pack(side="left")
-    app.setScene(Scene.SCENE_INITIAL)
+    app.setScene(Scene.SCENE_CLIPS)
 
     root.mainloop()

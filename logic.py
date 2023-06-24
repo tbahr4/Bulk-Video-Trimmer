@@ -125,6 +125,6 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
             command[10] = f'{endTime+interval-5}%{endTime+interval}'
 
         # extract on the corrected times
-        command = ['ffmpeg', '-loglevel', 'quiet', '-i', inputPath, '-ss', str(keyStartTime-.1), '-to', str(keyEndTime+.1), '-c', 'copy', outputPath]
+        command = ['ffmpeg', '-loglevel', 'quiet', '-i', inputPath, '-ss', str(keyStartTime-.1), '-to', str(keyEndTime+.1), '-c', 'copy', '-map', '0', outputPath]
         subprocess.run(command, creationflags=subprocess.CREATE_NO_WINDOW)
     
