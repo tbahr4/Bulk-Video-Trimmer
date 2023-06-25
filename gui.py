@@ -249,12 +249,18 @@ class ClipScene(tk.Frame):
                 self.optionMenu.entryconfigure("Alternate audio track", state='disabled')
         self.optionMenu.add_checkbutton(label="Alternate audio track", variable=cbox_AltTrack, command=onClick_AltTrack)
         # autoplay
+        cbox_Autoplay = tk.BooleanVar()
+        def onClick_Autoplay():
+            isEnabled = cbox_Autoplay.get()
+            self.video.playOnOpen = isEnabled
+        self.optionMenu.add_checkbutton(label="Autoplay", variable=cbox_Autoplay, command=onClick_Autoplay)
+        # loop playback
         cbox_LoopPlayback = tk.BooleanVar()
         self.optionMenu.add_checkbutton(label="Loop Playback", variable=cbox_LoopPlayback)
 
         # pack bools and option functions into list for later
-        self.optionBools = {"AltTrack": cbox_AltTrack, "LoopPlayback": cbox_LoopPlayback}
-        self.optionFunctions = [onClick_AltTrack]
+        self.optionBools = {"AltTrack": cbox_AltTrack, "Autoplay": cbox_Autoplay, "LoopPlayback": cbox_LoopPlayback}
+        self.optionFunctions = [onClick_AltTrack, onClick_Autoplay]
 
 
         self.menuBar.add_cascade(label="Menu", menu=self.controlMenu)
