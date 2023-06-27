@@ -145,7 +145,7 @@ class FileSelection(tk.Frame):
 
     def bFile_onClick(self):
         filetypes = [("MP4 Files", "*.mp4")]
-        files = filedialog.askopenfilenames(initialdir="~/Videos", title='Choose videos', filetypes=filetypes)
+        files = filedialog.askopenfilenames(title='Choose videos', filetypes=filetypes)
         if files != "": self.files = files
         else: return
 
@@ -176,7 +176,7 @@ class FolderSelection(tk.Frame):
         self.tFolder.grid(column=1, row=0)
 
     def bFolder_onClick(self):
-        newPath = filedialog.askdirectory(initialdir="~/Videos")
+        newPath = filedialog.askdirectory()
         if newPath != "": self.path = newPath
         else: return
 
