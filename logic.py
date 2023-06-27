@@ -45,7 +45,6 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
         # exec on separate thread
         def execCommand():
             subprocess.run(command, creationflags=subprocess.CREATE_NO_WINDOW)
-            print("done")
         cmdThread = threading.Thread(target=execCommand)
         cmdThread.start()
 

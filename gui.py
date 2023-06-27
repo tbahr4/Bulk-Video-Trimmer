@@ -66,7 +66,7 @@ class MainApp(tk.Frame):
             self.scene = InitialScene(self)
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__":
-                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test2.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test3.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test3.mp4')
+                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test2.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test3.mp4')
                 self.destFolder = r"C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/TestOutput"
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder)
         elif scene == Scene.SCENE_TRIM:
@@ -635,8 +635,15 @@ class TrimScene(tk.Frame):
         self.output = OutputConsole(self)
         self.output.pack(fill="both", expand=True)
 
-        self.button = tk.Button(self, command=self.buttonOnClick, text="Start", width=9, height=1)
-        self.button.pack(anchor="e")
+        self.buttonFrame = tk.Frame(self)
+        self.buttonFrame.pack(anchor="e")
+
+        self.skipButton = tk.Button(self.buttonFrame, command=self.skipButtonOnClick, text="Skip", width=9, height=1)
+        self.skipButton.grid(column=0, row=0)
+        self.skipButton.grid_forget()       # hide until needed
+
+        self.startButton = tk.Button(self.buttonFrame, command=self.startButtonOnClick, text="Start", width=9, height=1)
+        self.startButton.grid(column=1, row=0)
 
         self.progressBar = ProgressBar(self)
         self.progressBar.pack(side="bottom", pady=0)
@@ -644,11 +651,26 @@ class TrimScene(tk.Frame):
         # properties
         self.videoCount = 0
         self.a = False
-    def buttonOnClick(self):
-        self.button.config(text="Start", state="disabled")
+
+    def skipButtonOnClick(self):
+        self.skipButton.grid_forget()   # hide skip button
+
+        # update progress bar
+        self.videoCount += 1
+        self.progressBar.bar["value"] = self.videoCount / len(self.mainApp.trimData) * 100
+        self.progressBar.update()
+        self.root.update_idletasks()
+
+        # start next video
+        self.startButtonOnClick()
+
+
+
+    def startButtonOnClick(self):
+        self.startButton.config(text="Start", state="disabled")
+        self.skipButton.grid_forget()   # hide skip button
 
         # perform trim on all videos
-        print(self.mainApp.trimData[self.videoCount:])
         for trimData in self.mainApp.trimData[self.videoCount:]:
             inputPath = trimData["inputPath"]
             outputPath = f"{self.mainApp.destFolder}/({self.videoCount+1}) {trimData['description']}.mp4"
@@ -684,9 +706,10 @@ class TrimScene(tk.Frame):
                 if os.path.exists(outputPath):
                     self.log(f"[WARNING] File remains in directory {outputPath}")
 
-            # prompt to try again if not completed
+            # prompt to try again or skip if not completed
             if not isVideoProcessed:
-                self.button.config(state="normal", text="Try Again")
+                self.startButton.config(state="normal", text="Try Again")
+                self.skipButton.grid(column=0, row=0)       # display skip button
                 return
 
 
@@ -702,7 +725,7 @@ class TrimScene(tk.Frame):
         self.log("Done.")
 
         # update button to close
-        self.button.config(state="normal", text="Close", command=self.mainApp.closeApp)
+        self.startButton.config(state="normal", text="Close", command=self.mainApp.closeApp)
 
     def log(self, message: str):
         """
