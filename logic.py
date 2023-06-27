@@ -23,7 +23,6 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
     if isFramePerfect:
         # Get the number of CPU cores
         threads = multiprocessing.cpu_count()       # logical processers, not physical cores
-        print(threads)
 
         # delete unprocessed file if needed
         if os.path.exists(outputPath):
@@ -46,6 +45,7 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
         # exec on separate thread
         def execCommand():
             subprocess.run(command, creationflags=subprocess.CREATE_NO_WINDOW)
+            print("done")
         cmdThread = threading.Thread(target=execCommand)
         cmdThread.start()
 

@@ -66,7 +66,7 @@ class MainApp(tk.Frame):
             self.scene = InitialScene(self)
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__":
-                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test2.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test3.mp4')
+                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test2.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test3.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test3.mp4')
                 self.destFolder = r"C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/TestOutput"
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder)
         elif scene == Scene.SCENE_TRIM:
@@ -235,6 +235,8 @@ class ClipScene(tk.Frame):
         self.controlMenu = tk.Menu(self.menuBar, tearoff=0)
         self.optionMenu = tk.Menu(self.menuBar, tearoff=0)
         self.controlMenu.add_command(label="Controls", command=self.displayVideoControls)
+        self.controlMenu.add_command(label="Skip", command=self.promptSkip)
+        self.controlMenu.add_command(label="Skip all", command=self.promptSkipAll)
 
         # options
         # alternate track
@@ -332,7 +334,24 @@ class ClipScene(tk.Frame):
         controls = {"Space": "Play/Pause", "\u2190": "Seek left", "\u2192": "Seek right", "\u2191": "Volume up", "\u2193": "Volume down", "F": "Fullscreen", "Esc": "Leave fullscreen", "Home": "Seek to start", "End": "Seek to last 20s", ",": "Rewind 1 frame", ".": "Seek 1 frame ahead", "M": "Toggle mute", "0-9": "Seek", "E/R": "Set trim position", "Ctrl+E/R": "Reset trim position", "Shift+E/R": "Shift current trim position"}
         maxLen = 20
         tab = '\t'
-        messagebox.showinfo("Video Controls", "".join(f"{key:{6}}\t{tab if len(key) <= 8 else ''}{value}\n" for key, value in controls.items()))       
+        messagebox.showinfo("Video Controls", "".join(f"{key:{6}}\t{tab if len(key) <= 8 else ''}{value}\n" for key, value in controls.items()))     
+
+    def promptSkip(self):
+        """
+            Prompts the user to skip the current clip
+        """
+        result = messagebox.askokcancel("Skip", "Skip this clip?")
+        if result == True:
+            self.footerBar.nextButton.onClick(skipTrim=True)
+
+    def promptSkipAll(self):
+        """
+            Prompts the user if they want to skip the rest of the clips and trim, also ignores current clip
+        """  
+        result = messagebox.askokcancel("Skip all", "Skip the rest of the videos and begin trimming?")
+        if result == True:
+            self.parent.setScene(Scene.SCENE_TRIM)
+            
 
 class FramePerfectButton(tk.Frame):
     """
@@ -452,11 +471,11 @@ class NextButton(tk.Frame):
         self.clipScene = clipScene
         self.mainApp = mainApp
 
-        self.button = tk.Button(self, width=10, text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done", command=self.onClick, bg="#bbbbbb")
+        self.button = tk.Button(self, width=10, text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done", command=lambda: self.onClick(False), bg="#bbbbbb")
         self.button.config(state="disabled")
         self.button.pack()
 
-    def onClick(self):
+    def onClick(self, skipTrim: bool):
         # pause video
         if not self.parent.parent.video.actionBar.bPause.isPaused:
             self.parent.parent.video.actionBar.bPause.togglePause()
@@ -471,7 +490,8 @@ class NextButton(tk.Frame):
 
 
         # save picked times
-        self.mainApp.trimData.append(dict([("description", self.clipScene.footerBar.descBar.boxContents.get()), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime), ("fullVideoLength", self.clipScene.video.player.get_length()), ("isFramePerfect", self.clipScene.framePerfectButton.isSet.get() == 1)]))
+        if not skipTrim:
+            self.mainApp.trimData.append(dict([("description", self.clipScene.footerBar.descBar.boxContents.get()), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime), ("fullVideoLength", self.clipScene.video.player.get_length()), ("isFramePerfect", self.clipScene.framePerfectButton.isSet.get() == 1), ("inputPath", self.mainApp.videoPaths[self.clipScene.currentVideo-1])]))
 
         if self.clipScene.currentVideo == self.clipScene.totalVideos:  # done
             self.mainApp.setScene(Scene.SCENE_TRIM)
@@ -628,8 +648,9 @@ class TrimScene(tk.Frame):
         self.button.config(text="Start", state="disabled")
 
         # perform trim on all videos
+        print(self.mainApp.trimData[self.videoCount:])
         for trimData in self.mainApp.trimData[self.videoCount:]:
-            inputPath = self.mainApp.videoPaths[self.videoCount]
+            inputPath = trimData["inputPath"]
             outputPath = f"{self.mainApp.destFolder}/({self.videoCount+1}) {trimData['description']}.mp4"
             startTime = trimData["startTime"] / 1000
             endTime = trimData["endTime"] / 1000
