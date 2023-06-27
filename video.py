@@ -88,7 +88,7 @@ class VideoPlayer(tk.Frame):
         self.bFullscreen.lift()
         self.progressBar.lift()
         self.volumeBar.lift()
-        
+        self.wow = False
 
         # add listener for events
         root.bind("<KeyPress>", self.onKeyPress)
@@ -373,13 +373,23 @@ class VideoPlayer(tk.Frame):
         # pause if in restricted mode and past boundary
         # or replay in autoplay mode
         if duration != 0:
-            if self.enableRestrictedPlayback and round(self.player.get_position(), 6) >= round(self.restrictRight / duration, 6): 
+            if self.enableRestrictedPlayback and round(self.player.get_time(), 6) > round(self.restrictRight, 6): 
                 if self.clipScene.optionBools["LoopPlayback"].get():
                     if not self.progressBar.isClicking and not self.bPause.isPaused:
                         self._setPlayerPosition(0)
                 else:
-                   if not self.bPause.isPaused: self.bPause.togglePause() 
-                   self._setPlayerPosition(self.restrictRight / duration) 
+                    if not self.bPause.isPaused: 
+                        self.bPause.togglePause() 
+                    
+                    
+                    if self.clipScene.framePerfectButton.isSet.get() == 1:
+                        # delay needed to process recent pause
+                        self.parent.after(50, lambda: self._setPlayerPosition(self.restrictRight / duration))    
+                    else:
+                        self._setPlayerPosition(self.restrictRight / duration)     
+                    
+
+                   
 
 
         # Schedule the next update
