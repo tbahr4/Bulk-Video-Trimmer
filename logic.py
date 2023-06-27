@@ -9,6 +9,7 @@ import multiprocessing
 import subprocess
 import os
 import tempfile
+import threading
 
 
 def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float, isFramePerfect: bool, fullVideoLength: float, trimScene = None):
@@ -22,6 +23,7 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
     if isFramePerfect:
         # Get the number of CPU cores
         threads = multiprocessing.cpu_count()       # logical processers, not physical cores
+        print(threads)
 
         # delete unprocessed file if needed
         if os.path.exists(outputPath):
@@ -35,12 +37,23 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
             '-c:v', 'libx264',          # set video codec
             '-crf', '15',               # set quality (0=lossless)
             '-preset', 'medium',        # set encoding time to file size ratio
-            '-threads', str(threads-1), # set thread count
+            '-threads', str(threads-2), # set thread count
             '-c:a', 'libmp3lame',       # set audio codec
             '-b:a', '320k',             # set audio bitrate
             str(outputPath)             # set output file
         ]
-        subprocess.run(command, creationflags=subprocess.CREATE_NO_WINDOW)
+
+        # exec on separate thread
+        def execCommand():
+            subprocess.run(command, creationflags=subprocess.CREATE_NO_WINDOW)
+        cmdThread = threading.Thread(target=execCommand)
+        cmdThread.start()
+
+        while cmdThread.is_alive():
+            trimScene.root.update()
+            
+
+        
 
     else:
         # since this is not frame perfect, need to grab adjactent keyframes
@@ -59,7 +72,19 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
         #
         keyStartTime = None
         while keyStartTime == None:
-            result = subprocess.run(command, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            
+            # exec on separate thread
+            def execCommand(event):
+                result = subprocess.run(command, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                event.returnValue = result
+            event = threading.Event()
+            cmdThread = threading.Thread(target=execCommand, args=(event,))
+            cmdThread.start()
+            
+            while cmdThread.is_alive():
+                trimScene.root.update()
+            result = event.returnValue
+
 
             # clean output
             output = result.stdout.split('\n')[:-1]
@@ -96,8 +121,20 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
         command[10] = f'{endTime}%{endTime+interval}'
         keyEndTime = None
         while keyEndTime == None:
-            result = subprocess.run(command, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
             
+            # exec on separate thread
+            def execCommand(event):
+                result = subprocess.run(command, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                event.returnValue = result
+            event = threading.Event()
+            cmdThread = threading.Thread(target=execCommand, args=(event,))
+            cmdThread.start()
+            
+            while cmdThread.is_alive():
+                trimScene.root.update()
+            result = event.returnValue
+
+
             # clean output
             output = result.stdout.split('\n')[:-1]
             cleaned_output = []
@@ -126,5 +163,12 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
 
         # extract on the corrected times
         command = ['ffmpeg', '-loglevel', 'quiet', '-i', inputPath, '-ss', str(keyStartTime-.1), '-to', str(keyEndTime+.1), '-c', 'copy', '-map', '0', outputPath]
-        subprocess.run(command, creationflags=subprocess.CREATE_NO_WINDOW)
-    
+
+        # exec on separate thread
+        def execCommand():
+            subprocess.run(command, creationflags=subprocess.CREATE_NO_WINDOW)
+        cmdThread = threading.Thread(target=execCommand)
+        cmdThread.start()
+
+        while cmdThread.is_alive():
+            trimScene.root.update()

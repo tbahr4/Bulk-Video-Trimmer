@@ -88,7 +88,6 @@ class VideoPlayer(tk.Frame):
         self.bFullscreen.lift()
         self.progressBar.lift()
         self.volumeBar.lift()
-        self.wow = False
 
         # add listener for events
         root.bind("<KeyPress>", self.onKeyPress)
