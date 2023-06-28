@@ -235,9 +235,11 @@ class ClipScene(tk.Frame):
         self.controlMenu = tk.Menu(self.menuBar, tearoff=0)
         self.optionMenu = tk.Menu(self.menuBar, tearoff=0)
         self.controlMenu.add_command(label="Controls", command=self.displayVideoControls)
+        self.controlMenu.add_separator()
         self.controlMenu.add_command(label="Skip", command=self.promptSkip)
         self.controlMenu.add_command(label="Skip all", command=self.promptSkipAll)
         self.controlMenu.add_command(label="Save clip", command=self.saveClip, state="disabled")
+        self.controlMenu.add_command(label="Previous video", command=lambda: self.footerBar.nextButton.onClick(skipTrim=True, nextVideo=False, prevVideo=True), state="disabled")
 
         # options
         # alternate track
@@ -369,7 +371,7 @@ class ClipScene(tk.Frame):
         """
             To be used to save the current clip without moving to the next video
         """
-        self.footerBar.nextButton.onClick(skipTrim=False, nextVideo=False)
+        self.footerBar.nextButton.onClick(skipTrim=False, nextVideo=False, prevVideo=False)
             
 
 class FramePerfectButton(tk.Frame):
@@ -490,11 +492,11 @@ class NextButton(tk.Frame):
         self.clipScene = clipScene
         self.mainApp = mainApp
 
-        self.button = tk.Button(self, width=10, text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done", command=lambda: self.onClick(skipTrim=False, nextVideo=True), bg="#bbbbbb")
+        self.button = tk.Button(self, width=10, text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done", command=lambda: self.onClick(skipTrim=False, nextVideo=True, prevVideo=False), bg="#bbbbbb")
         self.button.config(state="disabled")
         self.button.pack()
 
-    def onClick(self, skipTrim: bool, nextVideo: bool):
+    def onClick(self, skipTrim: bool, nextVideo: bool, prevVideo: bool):
         """
             skipTrim: Processes the click but ignores the current video for trimming
             nextVideo: Processes the click but does not move to the next video
@@ -517,14 +519,21 @@ class NextButton(tk.Frame):
         if not skipTrim:
             self.mainApp.trimData.append(dict([("description", self.clipScene.footerBar.descBar.boxContents.get()), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime), ("fullVideoLength", self.clipScene.video.player.get_length()), ("isFramePerfect", self.clipScene.framePerfectButton.isSet.get() == 1), ("inputPath", self.mainApp.videoPaths[self.clipScene.currentVideo-1])]))
 
-        if nextVideo:
-            if self.clipScene.currentVideo == self.clipScene.totalVideos:  # done
+        if nextVideo or prevVideo:
+
+            # update video
+            self.clipScene.currentVideo += 1 if nextVideo else -1   # +1 if nextVideo / -1 if prevVideo
+
+            # if prevVideo, remove previous clip as well
+            if prevVideo:
+                self.mainApp.trimData.pop()
+
+            # update previous video button
+            self.clipScene.controlMenu.entryconfigure("Previous video", state='normal' if self.clipScene.currentVideo > 1 else 'disabled')
+
+            if self.clipScene.currentVideo > self.clipScene.totalVideos:  # done
                 self.mainApp.setScene(Scene.SCENE_TRIM)
             else:
-                #
-                # change to next video
-                #
-                self.clipScene.currentVideo += 1
 
                 # update text
                 self.button.config(text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done")
