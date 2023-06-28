@@ -237,6 +237,7 @@ class ClipScene(tk.Frame):
         self.controlMenu.add_command(label="Controls", command=self.displayVideoControls)
         self.controlMenu.add_command(label="Skip", command=self.promptSkip)
         self.controlMenu.add_command(label="Skip all", command=self.promptSkipAll)
+        self.controlMenu.add_command(label="Save clip", command=self.saveClip, state="disabled")
 
         # options
         # alternate track
@@ -351,6 +352,12 @@ class ClipScene(tk.Frame):
         result = messagebox.askokcancel("Skip all", "Skip the rest of the videos and begin trimming?")
         if result == True:
             self.parent.setScene(Scene.SCENE_TRIM)
+
+    def saveClip(self):
+        """
+            To be used to save the current clip without moving to the next video
+        """
+        self.footerBar.nextButton.onClick(skipTrim=False, nextVideo=False)
             
 
 class FramePerfectButton(tk.Frame):
@@ -471,11 +478,16 @@ class NextButton(tk.Frame):
         self.clipScene = clipScene
         self.mainApp = mainApp
 
-        self.button = tk.Button(self, width=10, text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done", command=lambda: self.onClick(False), bg="#bbbbbb")
+        self.button = tk.Button(self, width=10, text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done", command=lambda: self.onClick(skipTrim=False, nextVideo=True), bg="#bbbbbb")
         self.button.config(state="disabled")
         self.button.pack()
 
-    def onClick(self, skipTrim: bool):
+    def onClick(self, skipTrim: bool, nextVideo: bool):
+        """
+            skipTrim: Processes the click but ignores the current video for trimming
+            nextVideo: Processes the click but does not move to the next video
+        """
+
         # pause video
         if not self.parent.parent.video.actionBar.bPause.isPaused:
             self.parent.parent.video.actionBar.bPause.togglePause()
@@ -493,38 +505,52 @@ class NextButton(tk.Frame):
         if not skipTrim:
             self.mainApp.trimData.append(dict([("description", self.clipScene.footerBar.descBar.boxContents.get()), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime), ("fullVideoLength", self.clipScene.video.player.get_length()), ("isFramePerfect", self.clipScene.framePerfectButton.isSet.get() == 1), ("inputPath", self.mainApp.videoPaths[self.clipScene.currentVideo-1])]))
 
-        if self.clipScene.currentVideo == self.clipScene.totalVideos:  # done
-            self.mainApp.setScene(Scene.SCENE_TRIM)
+        if nextVideo:
+            if self.clipScene.currentVideo == self.clipScene.totalVideos:  # done
+                self.mainApp.setScene(Scene.SCENE_TRIM)
+            else:
+                #
+                # change to next video
+                #
+                self.clipScene.currentVideo += 1
+
+                # update text
+                self.button.config(text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done")
+                self.clipScene.tFileCount.config(text=f"{self.clipScene.currentVideo} of {self.clipScene.totalVideos}")
+                filename = self.mainApp.videoPaths[self.clipScene.currentVideo-1].split("/")[-1][:100]
+                self.clipScene.tFilename.config(text=filename)
+                self.clipScene.footerBar.descBar.boxContents.set("")
+
+                # reset frame perfect check
+                self.clipScene.framePerfectButton.isSet.set(0)
+
+                # replace file count to fit
+                self.mainApp.root.update()
+                self.clipScene.tFileCount.place(x=video.WINDOW_WIDTH-5-self.clipScene.tFileCount.winfo_width(), y=2)
+
+                # update video
+                self.clipScene.video.openVideo(self.mainApp.videoPaths[self.clipScene.currentVideo-1])
+
+                # reenable text entry
+                self.clipScene.footerBar.descBar.box.config(state="normal")
         else:
-            #
-            # change to next video
-            #
-            self.clipScene.currentVideo += 1
+            # do not transition to the next video, just reset data
+            self.clipScene.footerBar.descBar.boxContents.set("")    # reset description
+            self.clipScene.framePerfectButton.isSet.set(0)          # reset frame perfect check
+            self.clipScene.footerBar.descBar.box.config(state="normal")     # reenable text entry
 
-            # update text
-            self.button.config(text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done")
-            self.clipScene.tFileCount.config(text=f"{self.clipScene.currentVideo} of {self.clipScene.totalVideos}")
-            filename = self.mainApp.videoPaths[self.clipScene.currentVideo-1].split("/")[-1][:100]
-            self.clipScene.tFilename.config(text=filename)
-            self.clipScene.footerBar.descBar.boxContents.set("")
+            # reset restrictions
+            self.clipScene.video.unrestrictPlayback()
 
-            # reset frame perfect check
-            self.clipScene.framePerfectButton.isSet.set(0)
-
-            # replace file count to fit
-            self.mainApp.root.update()
-            self.clipScene.tFileCount.place(x=video.WINDOW_WIDTH-5-self.clipScene.tFileCount.winfo_width(), y=2)
-
-            # update video
-            self.clipScene.video.openVideo(self.mainApp.videoPaths[self.clipScene.currentVideo-1])
-
-            # reenable text entry
-            self.clipScene.footerBar.descBar.box.config(state="normal")
+            # re-pause if not already set
+            if not self.parent.parent.video.actionBar.bPause.isPaused:
+                self.parent.parent.video.actionBar.bPause.togglePause()
 
 
 class DescriptionBar(tk.Frame):
     def __init__(self, parent, nextButton: NextButton):
         super().__init__(parent)
+        self.parent = parent
         self.isBoxFocused = False
         self.nextButton = nextButton
         
@@ -555,6 +581,7 @@ class DescriptionBar(tk.Frame):
         text = self.boxContents.get()
         if text == "":
             self.nextButton.button.config(state="disabled")
+            self.parent.parent.controlMenu.entryconfigure("Save clip", state='disabled')
             return
 
         # remove excess text
@@ -594,6 +621,7 @@ class DescriptionBar(tk.Frame):
                 break
 
         self.nextButton.button.config(state="normal" if len(san_text) > 0 and hasNonSpaceChar else "disabled")
+        self.parent.parent.controlMenu.entryconfigure("Save clip", state='normal' if len(san_text) > 0 and hasNonSpaceChar else "disabled")
 
     def ignore(self, event):
         """
