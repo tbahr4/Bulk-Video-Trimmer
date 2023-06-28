@@ -47,6 +47,7 @@ class VideoPlayer(tk.Frame):
         self.unrestrictRightButton = unrestrictRightButton
         self.clipScene = clipScene
         self.menuBar = menuBar
+        self.isWindowFocused = True
 
         # properties
         self.playOnOpen = playOnOpen
@@ -78,6 +79,8 @@ class VideoPlayer(tk.Frame):
         self.bFullscreen = FullscreenButton(self, root=root, size=self.buttonSize)
 
         # video interaction (clicks) listener (since vlc takes over the canvas)
+        self.lastVideoClick = 0
+        self.videoDoubleClickDetected = False
         listener = Listener(on_click=self.onClick)
         listener.start()
 
@@ -105,23 +108,50 @@ class VideoPlayer(tk.Frame):
         self.progressBar.bind("<Enter>", self.onHover_ProgressBar)
         self.progressBar.bind("<Leave>", self.onLeave_ProgressBar)
         root.bind("<FocusIn>", self.onWindowFocus)
+        root.bind("<FocusOut>", self.onWindowUnfocus)
 
     def onClick(self, x, y, button, pressed):
         """
             On click anywhere in the window (handled by pynput listener)
         """
-        # check for left click on canvas
-        videoX1, videoY1 = self.canvas.winfo_rootx(), self.canvas.winfo_rooty()
-        videoX2, videoY2 = videoX1 + self.canvas.winfo_width(), videoY1 + self.canvas.winfo_height() - (self.progressBarHeight * 2 if self.progressBar.isHovering else 1)
-        
-        if button == Button.left and pressed == True and videoX1 <= x <= videoX2 and videoY1 <= y <= videoY2:
-            # reset focus
-            if self.clipScene != None:
-                self.clipScene.footerBar.descBar.isBoxFocused = False
-                self.parent.focus()
+        self.parent.update_idletasks()  # update focus
+        def _afterFocus():
+            if not self.isWindowFocused: return       # since pynput detect input whenever, only check when the window is focused
+            
+            # check for left click on canvas
+            videoX1, videoY1 = self.canvas.winfo_rootx(), self.canvas.winfo_rooty()
+            videoX2, videoY2 = videoX1 + self.canvas.winfo_width(), videoY1 + self.canvas.winfo_height() - (self.progressBarHeight * 2 if self.progressBar.isHovering else 1)
+            
+            if button == Button.left and pressed == True and videoX1 <= x <= videoX2 and videoY1 <= y <= videoY2:
+                # reset focus
+                if self.clipScene != None:
+                    self.clipScene.footerBar.descBar.isBoxFocused = False
+                    self.parent.focus()
 
-            # pause
-            self.bPause.onClick()
+                
+                def checkForDoubleClick():
+                    timeSinceLastClick = time.time() - self.lastVideoClick
+                    if timeSinceLastClick >= .24 and not self.videoDoubleClickDetected:
+                        self.bPause.onClick()
+                        print("toggle pause")
+                    self.videoDoubleClickDetected = False
+
+                timeSinceLastClick = time.time() - self.lastVideoClick
+                if timeSinceLastClick >= .24: 
+                    print("first click detected")
+                    self.after(250, checkForDoubleClick)
+
+                if timeSinceLastClick < .24:
+                    print("second click detected")
+                    self.videoDoubleClickDetected = True      # if this is set to true, then don't allow pause to toggle
+                    self.bFullscreen.toggleFullscreen()                             
+                
+
+                self.lastVideoClick = time.time()
+
+        # exec after focus catches up
+        self.after(100, _afterFocus)
+            
 
 
     def onWindowFocus(self, event):
@@ -129,6 +159,10 @@ class VideoPlayer(tk.Frame):
             Used to avoid 0 size window on Win+D keypress
         """
         self.parent.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
+        self.isWindowFocused = True
+
+    def onWindowUnfocus(self, event):
+        self.isWindowFocused = False
 
     def onHover_ProgressBar(self, event):
         self.progressBar.place(x=0, y=(self.screenHeight if not self.bFullscreen.isFullscreen else self.parent.winfo_screenheight()-self.progressBarHeight) - self.progressBar.height)
