@@ -713,7 +713,8 @@ class TrimScene(tk.Frame):
         # perform trim on all videos
         for trimData in self.mainApp.trimData[self.videoCount:]:
             inputPath = trimData["inputPath"]
-            outputPath = f"{self.mainApp.destFolder}/({self.videoCount+1}) {trimData['description']}.mp4"
+            maxOrder = self.getFileOrder(self.mainApp.destFolder)
+            outputPath = f"{self.mainApp.destFolder}/({maxOrder}) {trimData['description']}.mp4"
             startTime = trimData["startTime"] / 1000
             endTime = trimData["endTime"] / 1000
             isFramePerfect = trimData["isFramePerfect"]
@@ -728,7 +729,7 @@ class TrimScene(tk.Frame):
             self.filename.config(text=f"Status: {trimmedText}{'...' if font.Font().measure(trimData['description']) > trimWidth else ''}")
 
             self.remainder.config(text=f"Remaining: {len(self.mainApp.trimData) - self.videoCount}")
-            self.log(f"Trimming ({self.videoCount+1}) \"{trimData['description']}\" [{round(startTime)} - {round(endTime)}] {'and re-encoding' if isFramePerfect else ''}")
+            self.log(f"Trimming ({maxOrder}) \"{trimData['description']}\" [{round(startTime)} - {round(endTime)}] {'and re-encoding' if isFramePerfect else ''}")
             self.filename.update()
             self.remainder.update()
             self.output.output.update()
@@ -779,7 +780,31 @@ class TrimScene(tk.Frame):
         self.output.output.configure(state="disabled")
         self.output.output.see(tk.END)
             
+    def getFileOrder(self, directoryPath: str):
+        """
+            Returns the highest file number within the directory path +1.
+            The file number is given by (X) before the filenames
+        """
+        files = os.listdir(directoryPath)
         
+        maxOrder = 0
+        for file in files:
+            if len(file) < 3: continue
+            if file[0] != '(': continue
+
+            split = file.split(')')[0]
+            if len(split) == len(file): continue
+            split = split[1:]
+
+            if not split.isnumeric: continue
+            split = float(split)
+            if split != int(split): continue
+            value = int(split)
+            
+            if value > maxOrder: maxOrder = value
+
+        print(maxOrder+1)
+        return maxOrder + 1 
         
 
         
