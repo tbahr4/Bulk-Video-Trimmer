@@ -333,6 +333,9 @@ class ClipScene(tk.Frame):
             self.footerBar.descBar.isBoxFocused = False
             self.root.focus()
 
+        if event.widget == self.video.canvas:
+            self.video.onClick(event=event)
+
     def onKeyPress(self, event):
         """
             Bypasses video key presses on text box focus
