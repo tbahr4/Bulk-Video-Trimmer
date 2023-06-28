@@ -11,6 +11,7 @@ import time
 import gui
 from PIL import Image, ImageTk
 import os
+from pynput.mouse import Listener, Button
 
 WINDOW_HEIGHT = 649
 WINDOW_WIDTH = 1024
@@ -76,6 +77,15 @@ class VideoPlayer(tk.Frame):
         # fullscreen button, initialized with a list of all widgets to be resized
         self.bFullscreen = FullscreenButton(self, root=root, size=self.buttonSize)
 
+        # video interaction (clicks) listener (since vlc takes over the canvas)
+        listener = Listener(on_click=self.onClick)
+        listener.start()
+
+        
+            
+        
+        
+
         # display elements
         self.background.place(x=0, y=0)
         self.canvas.place(x=0,y=0)
@@ -88,12 +98,31 @@ class VideoPlayer(tk.Frame):
         self.bFullscreen.lift()
         self.progressBar.lift()
         self.volumeBar.lift()
+        
 
         # add listener for events
         root.bind("<KeyPress>", self.onKeyPress)
         self.progressBar.bind("<Enter>", self.onHover_ProgressBar)
         self.progressBar.bind("<Leave>", self.onLeave_ProgressBar)
         root.bind("<FocusIn>", self.onWindowFocus)
+
+    def onClick(self, x, y, button, pressed):
+        """
+            On click anywhere in the window (handled by pynput listener)
+        """
+        # check for left click on canvas
+        videoX1, videoY1 = self.canvas.winfo_rootx(), self.canvas.winfo_rooty()
+        videoX2, videoY2 = videoX1 + self.canvas.winfo_width(), videoY1 + self.canvas.winfo_height() - (self.progressBarHeight * 2 if self.progressBar.isHovering else 1)
+        
+        if button == Button.left and pressed == True and videoX1 <= x <= videoX2 and videoY1 <= y <= videoY2:
+            # reset focus
+            if self.clipScene != None:
+                self.clipScene.footerBar.descBar.isBoxFocused = False
+                self.parent.focus()
+
+            # pause
+            self.bPause.onClick()
+
 
     def onWindowFocus(self, event):
         """
@@ -126,10 +155,12 @@ class VideoPlayer(tk.Frame):
         if key == "space":
             self.bPause.onClick()
         elif key == "Left":
-            seekTime = self.clipScene.options["SeekTime"].get()
+            seekTime = 10000
+            if self.clipScene != None: seekTime = self.clipScene.options["SeekTime"].get()
             self.seek(-seekTime)
         elif key == "Right":
-            seekTime = self.clipScene.options["SeekTime"].get()
+            seekTime = 10000
+            if self.clipScene != None: seekTime = self.clipScene.options["SeekTime"].get()
             self.seek(seekTime)
         elif key == "Up":
             self.volume = min(100, self.volume + 5)
@@ -1011,7 +1042,7 @@ if __name__ == "__main__":
     video.place(x=0,y=0, width=root.winfo_screenwidth(), height=root.winfo_screenheight())
 
     
-    video.openVideo("test-long.mp4")
+    video.openVideo("test.mp4")
     video.scheduleUpdates()
 
     root.mainloop()
