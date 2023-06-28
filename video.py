@@ -126,9 +126,11 @@ class VideoPlayer(tk.Frame):
         if key == "space":
             self.bPause.onClick()
         elif key == "Left":
-            self.seek(-10000)
+            seekTime = self.clipScene.options["SeekTime"].get()
+            self.seek(-seekTime)
         elif key == "Right":
-            self.seek(10000)
+            seekTime = self.clipScene.options["SeekTime"].get()
+            self.seek(seekTime)
         elif key == "Up":
             self.volume = min(100, self.volume + 5)
             self.player.audio_set_volume(self.volume)
@@ -373,7 +375,7 @@ class VideoPlayer(tk.Frame):
         # or replay in autoplay mode
         if duration != 0:
             if self.enableRestrictedPlayback and round(self.player.get_time(), 6) > round(self.restrictRight, 6): 
-                if self.clipScene.optionBools["LoopPlayback"].get():
+                if self.clipScene.options["LoopPlayback"].get():
                     if not self.progressBar.isClicking and not self.bPause.isPaused:
                         self._setPlayerPosition(0)
                 else:

@@ -260,9 +260,18 @@ class ClipScene(tk.Frame):
         # loop playback
         cbox_LoopPlayback = tk.BooleanVar()
         self.optionMenu.add_checkbutton(label="Loop Playback", variable=cbox_LoopPlayback)
+        # change arrow key functionality
+        self.optionMenu.add_separator()
+        self.seekSpeedMenu = tk.Menu(self.optionMenu, tearoff=0)
+        selectedSeekSpeed = tk.IntVar(None, 10000)
+        self.seekSpeedMenu.add_radiobutton(label="1s", variable=selectedSeekSpeed, value=1000)
+        self.seekSpeedMenu.add_radiobutton(label="5s", variable=selectedSeekSpeed, value=5000)
+        self.seekSpeedMenu.add_radiobutton(label="10s (default)", variable=selectedSeekSpeed, value=10000)
+        self.optionMenu.add_cascade(label="Set seek time", menu=self.seekSpeedMenu)
+
 
         # pack bools and option functions into list for later
-        self.optionBools = {"AltTrack": cbox_AltTrack, "Autoplay": cbox_Autoplay, "LoopPlayback": cbox_LoopPlayback}
+        self.options = {"AltTrack": cbox_AltTrack, "Autoplay": cbox_Autoplay, "LoopPlayback": cbox_LoopPlayback, "SeekTime": selectedSeekSpeed}
         self.optionFunctions = [onClick_AltTrack, onClick_Autoplay]
 
 
