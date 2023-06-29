@@ -31,7 +31,6 @@ class Scene(Enum):
 
 
 
-
 class MainApp(tk.Frame):
     """
         The main gui application
@@ -63,12 +62,16 @@ class MainApp(tk.Frame):
             self.root.unbind('<Button-1>')
             self.root.unbind('<KeyPress>')
 
+            self.root.geometry(f"{400}x{100}")
             self.scene = InitialScene(self)
+            self.scene.pack(pady=5, fill="both", expand=True)
+            
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__":
                 self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test2.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test3.mp4')
                 self.destFolder = r"C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/TestOutput"
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder)
+            self.scene.pack(fill="both", expand=True)
         elif scene == Scene.SCENE_TRIM:
             if type(self.scene) == ClipScene:
                 self.scene.video.place_forget()
@@ -78,7 +81,7 @@ class MainApp(tk.Frame):
             self.root.unbind('<KeyPress>')
 
             self.scene = TrimScene(self, mainApp=self)
-        self.scene.pack()
+            self.scene.pack(fill="both", expand=True)
     
     def closeApp(self):
         self.parent.destroy()
@@ -102,9 +105,9 @@ class InitialScene(tk.Frame):
         self.beginButton = BeginButton(self)
 
         # build
-        self.srcSelection.grid(column=0, row=0)
-        self.destSelection.grid(column=0, row=1)
-        self.beginButton.grid(column=0, row=2, pady=5)
+        self.srcSelection.pack()
+        self.destSelection.pack()
+        self.beginButton.pack(expand=True, fill="both", padx=55, pady=7)
 
         # properties
         self.hasFolder1 = False
@@ -137,11 +140,11 @@ class FileSelection(tk.Frame):
 
         # instances
         self.bFolder = tk.Button(self, text=buttonText, width=20, command=self.bFile_onClick)
-        self.tFolder = tk.Text(self, height=1, width = 31, state="disabled", wrap="none")
+        self.tFolder = tk.Text(self, height=1, state="disabled", wrap="none")
 
         # build
-        self.bFolder.grid(column=0, row=0)
-        self.tFolder.grid(column=1, row=0)
+        self.bFolder.pack(side="left")
+        self.tFolder.pack(side="right")
 
     def bFile_onClick(self):
         filetypes = [("MP4 Files", "*.mp4")]
@@ -169,11 +172,11 @@ class FolderSelection(tk.Frame):
 
         # instances
         self.bFolder = tk.Button(self, text=buttonText, width=20, command=self.bFolder_onClick)
-        self.tFolder = tk.Text(self, height=1, width = 31, state="disabled", wrap="none")
+        self.tFolder = tk.Text(self, height=1, state="disabled", wrap="none")
 
         # build
-        self.bFolder.grid(column=0, row=0)
-        self.tFolder.grid(column=1, row=0)
+        self.bFolder.pack(side="left")
+        self.tFolder.pack(side="right")
 
     def bFolder_onClick(self):
         newPath = filedialog.askdirectory()
@@ -200,8 +203,9 @@ class BeginButton(tk.Frame):
         super().__init__(parent)
         self.parent = parent
         
-        self.bBegin = tk.Button(self, text="Gather Files", width=40, command=self.bBegin_onClick, state="disabled")
-        self.bBegin.grid(column=0, row=0)
+        self.pixel = tk.PhotoImage(width=1, height=1)    # used to set height in terms of pixels
+        self.bBegin = tk.Button(self, image=self.pixel, text="Gather Files", compound="top", command=self.bBegin_onClick, state="disabled") 
+        self.bBegin.pack(fill="both", expand=True)
 
     def bBegin_onClick(self):
         self.parent.parent.setScene(Scene.SCENE_CLIPS)
@@ -329,7 +333,7 @@ class ClipScene(tk.Frame):
 
     def onClick(self, event):
         """
-            Detects all clicks on the window
+            Detects all left clicks on the window
         """
         if event.widget != self.footerBar.descBar.box:
             self.footerBar.descBar.isBoxFocused = False
@@ -870,7 +874,7 @@ if __name__ == "__main__":
     root.iconbitmap("images/logo.ico")
 
     app = MainApp(root)
-    app.pack(side="left")
+    app.pack(fill="both", expand=True)
     app.setScene(Scene.SCENE_CLIPS)
 
     root.mainloop()
