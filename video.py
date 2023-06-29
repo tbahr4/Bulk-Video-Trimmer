@@ -4,13 +4,14 @@
 # Contains a VideoPlayer class to encapsulate everything needed to create a video player
 #
 
+import os
 import tkinter as tk
 import vlc
 import threading
 import time
 import gui
 from PIL import Image, ImageTk
-import os
+
 import sys
 
 WINDOW_HEIGHT = 649
@@ -56,7 +57,6 @@ class VideoPlayer(tk.Frame):
         self.volume = 50
 
         # init vlc instance
-        d = r'C:\Users\tbahr4\Downloads\VLC\plugins'
         self.instance = vlc.Instance()
         self.player = self.instance.media_player_new()
         self.player.video_set_mouse_input(False)
