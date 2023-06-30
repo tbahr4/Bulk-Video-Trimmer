@@ -14,15 +14,6 @@ RequestExecutionLevel admin
 Section
     ; Set output path
     SetOutPath $TEMP   
-    
-    ; Copy the requirements.txt file
-    File "requirements.txt"
-
-    ; Install dependencies
-    ExecWait 'py -3.11 -m pip install -r requirements.txt'
-
-    ; Delete the requirements.txt file
-    Delete "$TEMP\requirements.txt"
 
     ; Set output path
     SetOutPath $INSTDIR   
