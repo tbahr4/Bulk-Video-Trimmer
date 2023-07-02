@@ -5,6 +5,7 @@
 #
 
 import os
+os.add_dll_directory(os.getcwd())
 import tkinter as tk
 import vlc
 import threading
