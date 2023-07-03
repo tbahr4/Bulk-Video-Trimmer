@@ -593,7 +593,7 @@ class DescriptionBar(tk.Frame):
 
         # add listeners
         self.box.bind('<FocusIn>', self.onFocus)
-        self.box.bind('<Return>', self.ignore)
+        self.box.bind('<Return>', lambda e: self.nextButton.onClick(skipTrim=False, nextVideo=True, prevVideo=False) if self.nextButton.button["state"] == "normal" else None)
 
         self.text.grid(column=0, row=0)
         self.box.grid(column=1, row=0, pady=3)
@@ -654,12 +654,6 @@ class DescriptionBar(tk.Frame):
 
         self.nextButton.button.config(state="normal" if len(san_text) > 0 and hasNonSpaceChar else "disabled")
         self.parent.parent.controlMenu.entryconfigure("Save clip", state='normal' if len(san_text) > 0 and hasNonSpaceChar else "disabled")
-
-    def ignore(self, event):
-        """
-            Used for ignoring keypresses
-        """
-        return "break"
         
 
 class FooterBar(tk.Frame):
