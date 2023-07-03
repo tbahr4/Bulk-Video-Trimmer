@@ -162,10 +162,12 @@ class VideoPlayer(tk.Frame):
             Used to avoid 0 size window on Win+D keypress
         """
         self.parent.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
-        self.isWindowFocused = True
+        if self.parent.focus_displayof() != None:
+            self.isWindowFocused = True
 
     def onWindowUnfocus(self, event):
-        self.isWindowFocused = False
+        if self.parent.focus_displayof() == None:
+            self.isWindowFocused = False
 
     def onHover_ProgressBar(self, event):
         self.progressBar.place(x=0, y=(self.screenHeight if not self.bFullscreen.isFullscreen else self.parent.winfo_screenheight()-self.progressBarHeight) - self.progressBar.height)
