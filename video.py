@@ -396,10 +396,13 @@ class VideoPlayer(tk.Frame):
             self.lastEndStateTime = time.time()
         timeSinceLastEndState = time.time() - self.lastEndStateTime
 
-        # pause if at end of video
+        # pause/loop if at end of video
         framesToEnd = duration - self.player.get_time()
         if self.player.get_state() == vlc.State.Playing and framesToEnd < 250:
-            self.player.pause()
+            if self.clipScene.options["LoopPlayback"].get():
+                self._setPlayerPosition(0)
+            else:
+                self.player.pause()
 
         # update pause button
         playState = self.player.get_state()
@@ -456,6 +459,7 @@ class VideoPlayer(tk.Frame):
                         self.parent.after(50, lambda: self._setPlayerPosition(self.restrictRight / duration))    
                     else:
                         self._setPlayerPosition(self.restrictRight / duration)     
+
                     
 
                    

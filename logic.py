@@ -4,12 +4,14 @@
 # Contains the logic necessary to trim video files
 #
 
-from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 import multiprocessing
 import subprocess
 import os
 import tempfile
 import threading
+
+# set ffmpeg path temporarily
+os.environ["PATH"] = f"{os.getcwd()}" + r'\ffmpeg\bin' + f"{os.pathsep}{os.environ['PATH']}"
 
 
 def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float, isFramePerfect: bool, fullVideoLength: float, trimScene = None):

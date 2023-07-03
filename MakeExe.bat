@@ -2,6 +2,7 @@ pyinstaller --add-data "images;images" -F -w --additional-hooks-dir=. -i images\
 
 set "dest=dist"
 robocopy "plugins" "%dest%\plugins" /E
+robocopy "ffmpeg" "%dest%\ffmpeg" /E
 copy "libvlc.dll" "%dest%"
 copy "libvlccore.dll" "%dest%"
 pause

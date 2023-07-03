@@ -13,17 +13,21 @@ RequestExecutionLevel admin
 ; Installer sections
 Section
     ; Set output path
-    SetOutPath $TEMP   
-
-    ; Set output path
     SetOutPath $INSTDIR   
 
-    ; Install Python app
+    ; Add Application
     File "dist\Bulk Video Trimmer.exe"
 
-    ; Copy the "images" folder
-    SetOutPath $INSTDIR\images
-    File /r "dist\images\*.*"
+    ; Copy folders
+    SetOutPath $INSTDIR\ffmpeg
+    File /r "dist\ffmpeg\*.*"
+    SetOutPath $INSTDIR\plugins
+    File /r "dist\plugins\*.*"
+
+    ; Copy libs
+    SetOutPath $INSTDIR
+    File "libvlc.dll"
+    File "libvlccore.dll"
 
     ; Write the uninstaller
     WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -35,6 +39,8 @@ Section
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Bulk Video Trimmer" "NoRepair" 1
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Bulk Video Trimmer" "DisplayIcon" "$\"$INSTDIR\Bulk Video Trimmer.exe$\""
 
+    ; Add to PATH
+    $EnvVarUpdate $0 "PATH" "A" "HKLM" "$INSTDIR\ffmpeg\bin"  
 SectionEnd
 
 ; Create a shortcut on the desktop
@@ -61,6 +67,9 @@ Section "Uninstall"
     SetShellVarContext current
     ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" "Desktop"
     Delete "$0\Bulk Video Trimmer.lnk"
+
+    ; Remove from PATH
+     $un.EnvVarUpdate $0 "PATH" "R" "HKLM" "$INSTDIR\ffmpeg\bin"  
 
     ; Remove the uninstaller registry entry
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Bulk Video Trimmer"
