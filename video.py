@@ -855,6 +855,7 @@ class PauseButton(tk.Frame):
             self.player.play()          
             self.setUnpaused()   
             self.progressBar.setValue(0) # update bar
+            self.parent.parent.clipScene.updateOptions()
 
         if not self.isPaused:
             self.player.pause()
@@ -909,12 +910,13 @@ class SkipButton(tk.Frame):
                 self.player.play()
                 self.pauseButton.setUnpaused()
                 self.parent.parent._setPlayerPosition(max(0, duration-15000))
+                self.parent.parent.clipScene.updateOptions()
             
             while self.player.get_state() == vlc.State.Opening: pass
             self.player.pause()
             self.parent.bPause.setPaused()
                 
-
+        
         if newTime < 0: 
             self.parent.parent._setPlayerPosition(0)
         elif newTime > duration-250:    
@@ -967,6 +969,7 @@ class ProgressBar(tk.Frame):
             self.player.stop()
             self.player.play()
             self.parent.bPause.setUnpaused()
+            self.parent.clipScene.updateOptions()
         
         if 0 < percent < 1:
             self.parent._setPlayerPosition(percent)
@@ -985,6 +988,7 @@ class ProgressBar(tk.Frame):
             self.player.play()
             self.parent.bPause.setUnpaused()
             self.parent._setPlayerPosition(percent)
+            self.parent.clipScene.updateOptions()
 
 
             while self.player.get_state() == vlc.State.Opening: pass
