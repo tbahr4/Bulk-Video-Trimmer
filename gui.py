@@ -77,9 +77,6 @@ class MainApp(tk.Frame):
             self.scene.pack(pady=5, fill="both", expand=True)
             
         elif scene == Scene.SCENE_CLIPS:
-            if __name__ == "__main__":
-                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test2.mp4',r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test3.mp4')
-                self.destFolder = r"C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/TestOutput"
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder)
             self.scene.pack(fill="both", expand=True)
         elif scene == Scene.SCENE_TRIM:
