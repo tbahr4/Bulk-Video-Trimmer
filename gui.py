@@ -17,6 +17,7 @@ import logic
 from tkinter import font
 import os
 from tkinter import messagebox
+import sys
 
 bg = "#eeeeee"
 
@@ -29,7 +30,16 @@ class Scene(Enum):
 
 
 
+def getResourcePath(relativePath: str):
+    """ 
+        Get path to the given resource, needed for temp paths to resources created by pyinstaller
+    """
+    try:
+        basePath = sys._MEIPASS     # PyInstaller creates a temp folder and stores path in _MEIPASS
+    except Exception:
+        basePath = os.path.abspath(".")
 
+    return os.path.join(basePath, relativePath)
 
 class MainApp(tk.Frame):
     """
@@ -398,7 +408,7 @@ class ResetButton(tk.Frame):
         self.isLeft = isLeft
         self.clipScene = clipScene
 
-        image = Image.open("images/resetLeft.png" if isLeft else "images/resetRight.png")
+        image = Image.open(getResourcePath("images/resetLeft.png") if isLeft else getResourcePath("images/resetRight.png"))
         image.thumbnail((buttonSize, buttonSize))
         self.image = ImageTk.PhotoImage(image)
 
@@ -871,7 +881,7 @@ if __name__ == "__main__":
     root.title("Bulk Video Trimmer")
     root.geometry("400x100")
     root.resizable(width=False, height=False)
-    root.iconbitmap("images/logo.ico")
+    root.iconbitmap(getResourcePath("images/logo.ico"))
 
     app = MainApp(root)
     app.pack(fill="both", expand=True)

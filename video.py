@@ -6,14 +6,17 @@
 
 import os
 os.add_dll_directory(os.getcwd())
+import sys
+try:
+    os.add_dll_directory(sys._MEIPASS)
+except:pass
+
 import tkinter as tk
 import vlc
 import threading
 import time
-import gui
 from PIL import Image, ImageTk
-
-import sys
+import gui
 
 WINDOW_HEIGHT = 649
 WINDOW_WIDTH = 1024
@@ -577,7 +580,7 @@ class FullscreenButton(tk.Frame):
         self.timeBetweenToggles = .2
         self.widgetData = {}
 
-        image = Image.open("images/fullscreen.png")
+        image = Image.open(gui.getResourcePath("images/fullscreen.png"))
         image.thumbnail((size, size))
         self.image = ImageTk.PhotoImage(image)
         self.button = tk.Button(self, width=size, command=self.toggleFullscreen, image=self.image, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
@@ -739,7 +742,7 @@ class VolumeButton(tk.Frame):
         self.isMuted = False
         
         #images
-        images = [Image.open("images/volume-mute.png"), Image.open("images/volume-min.png"), Image.open("images/volume-mid.png"), Image.open("images/volume-max.png")]
+        images = [Image.open(gui.getResourcePath("images/volume-mute.png")), Image.open(gui.getResourcePath("images/volume-min.png")), Image.open(gui.getResourcePath("images/volume-mid.png")), Image.open(gui.getResourcePath("images/volume-max.png"))]
         for image in images: image.thumbnail((size, size))
         self.images = [ImageTk.PhotoImage(image) for image in images]
         self.bVolume = tk.Button(self, width=size, command=self.toggleMute, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
@@ -811,8 +814,8 @@ class PauseButton(tk.Frame):
         self.isPaused = startPaused
         self.progressBar = progressBar
 
-        self.imPlay = Image.open("images/play.png")
-        self.imPause = Image.open("images/pause.png")
+        self.imPlay = Image.open(gui.getResourcePath("images/play.png"))
+        self.imPause = Image.open(gui.getResourcePath("images/pause.png"))
         self.imPlay.thumbnail((size, size))
         self.imPause.thumbnail((size, size))
         self.playImage = ImageTk.PhotoImage(self.imPlay)
@@ -877,7 +880,7 @@ class SkipButton(tk.Frame):
         self.isForwardSkip = isForwardSkip
         self.progressBar = progressBar
 
-        image = Image.open("images/skip-15.png" if isForwardSkip else "images/back-15.png")
+        image = Image.open(gui.getResourcePath("images/skip-15.png")  if isForwardSkip else gui.getResourcePath("images/back-15.png"))
         image.thumbnail((size, size))
         self.image = ImageTk.PhotoImage(image)
 
@@ -1063,8 +1066,6 @@ class ProgressBar(tk.Frame):
         # update restriction bar
         if self.parent.enableRestrictedPlayback:
             self.canvas.coords(self.restrictBar, int(leftPercent * self.width), 0, int(rightPercent * self.width), self.height * 2)
-
-
 
 if __name__ == "__main__":
     root = tk.Tk()
