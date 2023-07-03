@@ -13,26 +13,21 @@ RequestExecutionLevel admin
 ; Installer sections
 Section
     ; Set output path
-    SetOutPath $TEMP   
-    
-    ; Copy the requirements.txt file
-    File "requirements.txt"
-
-    ; Install dependencies
-    ExecWait 'py -3.11 -m pip install -r requirements.txt'
-
-    ; Delete the requirements.txt file
-    Delete "$TEMP\requirements.txt"
-
-    ; Set output path
     SetOutPath $INSTDIR   
 
-    ; Install Python app
+    ; Add Application
     File "dist\Bulk Video Trimmer.exe"
 
-    ; Copy the "images" folder
-    SetOutPath $INSTDIR\images
-    File /r "dist\images\*.*"
+    ; Copy folders
+    SetOutPath $INSTDIR\ffmpeg
+    File /r "dist\ffmpeg\*.*"
+    SetOutPath $INSTDIR\plugins
+    File /r "dist\plugins\*.*"
+
+    ; Copy libs
+    SetOutPath $INSTDIR
+    File "libvlc.dll"
+    File "libvlccore.dll"
 
     ; Write the uninstaller
     WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -43,15 +38,12 @@ Section
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Bulk Video Trimmer" "NoModify" 1
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Bulk Video Trimmer" "NoRepair" 1
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Bulk Video Trimmer" "DisplayIcon" "$\"$INSTDIR\Bulk Video Trimmer.exe$\""
-
 SectionEnd
 
 ; Create a shortcut on the desktop
 Section "Desktop Shortcut"
     SetShellVarContext all
-    SetOutPath $INSTDIR
-    SetShellVarContext current
-    ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" "Desktop"
+    StrCpy $0 $DESKTOP
     CreateShortcut "$0\Bulk Video Trimmer.lnk" "$INSTDIR\Bulk Video Trimmer.exe"
 SectionEnd
 
@@ -60,15 +52,17 @@ Section "Uninstall"
     ; Remove installed files
     Delete "$INSTDIR\*.*"
 
-    ; Remove the "images" folder
+    ; Remove folders
     RMDir /r "$INSTDIR\images"
+    RMDir /r "$INSTDIR\ffmpeg"
+    RMDir /r "$INSTDIR\plugins"
 
     ; Remove the installation directory
     RMDir "$INSTDIR"
 
     ; Remove the desktop shortcut
-    SetShellVarContext current
-    ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" "Desktop"
+    SetShellVarContext all
+    StrCpy $0 $DESKTOP
     Delete "$0\Bulk Video Trimmer.lnk"
 
     ; Remove the uninstaller registry entry

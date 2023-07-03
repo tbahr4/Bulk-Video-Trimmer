@@ -17,6 +17,7 @@ import logic
 from tkinter import font
 import os
 from tkinter import messagebox
+import sys
 
 bg = "#eeeeee"
 
@@ -29,8 +30,16 @@ class Scene(Enum):
 
 
 
+def getResourcePath(relativePath: str):
+    """ 
+        Get path to the given resource, needed for temp paths to resources created by pyinstaller
+    """
+    try:
+        basePath = sys._MEIPASS     # PyInstaller creates a temp folder and stores path in _MEIPASS
+    except Exception:
+        basePath = os.path.abspath(".")
 
-
+    return os.path.join(basePath, relativePath)
 
 class MainApp(tk.Frame):
     """
@@ -63,9 +72,13 @@ class MainApp(tk.Frame):
             self.root.unbind('<Button-1>')
             self.root.unbind('<KeyPress>')
 
+            self.root.geometry(f"{400}x{100}")
             self.scene = InitialScene(self)
+            self.scene.pack(pady=5, fill="both", expand=True)
+            
         elif scene == Scene.SCENE_CLIPS:
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder)
+            self.scene.pack(fill="both", expand=True)
         elif scene == Scene.SCENE_TRIM:
             if type(self.scene) == ClipScene:
                 self.scene.video.place_forget()
@@ -75,7 +88,7 @@ class MainApp(tk.Frame):
             self.root.unbind('<KeyPress>')
 
             self.scene = TrimScene(self, mainApp=self)
-        self.scene.pack()
+            self.scene.pack(fill="both", expand=True)
     
     def closeApp(self):
         self.parent.destroy()
@@ -99,9 +112,9 @@ class InitialScene(tk.Frame):
         self.beginButton = BeginButton(self)
 
         # build
-        self.srcSelection.grid(column=0, row=0)
-        self.destSelection.grid(column=0, row=1)
-        self.beginButton.grid(column=0, row=2, pady=5)
+        self.srcSelection.pack()
+        self.destSelection.pack()
+        self.beginButton.pack(expand=True, fill="both", padx=55, pady=7)
 
         # properties
         self.hasFolder1 = False
@@ -134,15 +147,15 @@ class FileSelection(tk.Frame):
 
         # instances
         self.bFolder = tk.Button(self, text=buttonText, width=20, command=self.bFile_onClick)
-        self.tFolder = tk.Text(self, height=1, width = 31, state="disabled", wrap="none")
+        self.tFolder = tk.Text(self, height=1, state="disabled", wrap="none")
 
         # build
-        self.bFolder.grid(column=0, row=0)
-        self.tFolder.grid(column=1, row=0)
+        self.bFolder.pack(side="left")
+        self.tFolder.pack(side="right")
 
     def bFile_onClick(self):
         filetypes = [("MP4 Files", "*.mp4")]
-        files = filedialog.askopenfilenames(initialdir="~/Videos", title='Choose videos', filetypes=filetypes)
+        files = filedialog.askopenfilenames(title='Choose videos', filetypes=filetypes)
         if files != "": self.files = files
         else: return
 
@@ -166,14 +179,14 @@ class FolderSelection(tk.Frame):
 
         # instances
         self.bFolder = tk.Button(self, text=buttonText, width=20, command=self.bFolder_onClick)
-        self.tFolder = tk.Text(self, height=1, width = 31, state="disabled", wrap="none")
+        self.tFolder = tk.Text(self, height=1, state="disabled", wrap="none")
 
         # build
-        self.bFolder.grid(column=0, row=0)
-        self.tFolder.grid(column=1, row=0)
+        self.bFolder.pack(side="left")
+        self.tFolder.pack(side="right")
 
     def bFolder_onClick(self):
-        newPath = filedialog.askdirectory(initialdir="~/Videos")
+        newPath = filedialog.askdirectory()
         if newPath != "": self.path = newPath
         else: return
 
@@ -197,8 +210,9 @@ class BeginButton(tk.Frame):
         super().__init__(parent)
         self.parent = parent
         
-        self.bBegin = tk.Button(self, text="Gather Files", width=40, command=self.bBegin_onClick, state="disabled")
-        self.bBegin.grid(column=0, row=0)
+        self.pixel = tk.PhotoImage(width=1, height=1)    # used to set height in terms of pixels
+        self.bBegin = tk.Button(self, image=self.pixel, text="Gather Files", compound="top", command=self.bBegin_onClick, state="disabled") 
+        self.bBegin.pack(fill="both", expand=True)
 
     def bBegin_onClick(self):
         self.parent.parent.setScene(Scene.SCENE_CLIPS)
@@ -219,21 +233,67 @@ class ClipScene(tk.Frame):
         self.currentVideo = 1
         self.totalVideos = len(videoPaths)
 
-        # instances
-        self.menuBar = tk.Menu(self)
-        self.menu = tk.Menu(self.menuBar, tearoff=0)
-        self.menu.add_command(label="Controls", command=self.displayVideoControls)
-        self.menuBar.add_cascade(label="Menu", menu=self.menu)
-        self.parent.root.config(menu=self.menuBar)
-    
-
+        # video and surrounding instances
         self.background = tk.Canvas(self, background=bg, width=video.WINDOW_WIDTH, height=video.WINDOW_HEIGHT, borderwidth=0, highlightthickness=0)
         self.tFilename = tk.Label(self, text="None")
         self.tFileCount = tk.Label(self, text="0 of 0")
         self.actionBar = ActionBar(self)
-        self.video = video.VideoPlayer(self.root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40, restrictLeftButton=self.actionBar.setLeft, restrictRightButton=self.actionBar.setRight, unrestrictLeftButton=self.actionBar.resetLeft, unrestrictRightButton=self.actionBar.resetRight, clipScene=self, menuBar=self.menuBar)
         self.footerBar = FooterBar(self, clipScene=self, mainApp=self.parent)
         self.framePerfectButton = FramePerfectButton(self)
+
+        # instances
+        self.menuBar = tk.Menu(self)
+        self.controlMenu = tk.Menu(self.menuBar, tearoff=0)
+        self.optionMenu = tk.Menu(self.menuBar, tearoff=0)
+        self.controlMenu.add_command(label="Controls", command=self.displayVideoControls)
+        self.controlMenu.add_separator()
+        self.controlMenu.add_command(label="Skip", command=self.promptSkip)
+        self.controlMenu.add_command(label="Skip all", command=self.promptSkipAll)
+        self.controlMenu.add_command(label="Save clip", command=self.saveClip, state="disabled")
+        self.controlMenu.add_command(label="Previous video", command=lambda: self.footerBar.nextButton.onClick(skipTrim=True, nextVideo=False, prevVideo=True), state="disabled")
+
+        # options
+        # alternate track
+        cbox_AltTrack = tk.BooleanVar()
+        def onClick_AltTrack():
+            isEnabled = cbox_AltTrack.get()
+            if self.video.player.audio_get_track_count() >= 3:
+                    self.optionMenu.entryconfigure("Alternate audio track", state='normal')
+                    self.video.player.audio_set_track(2 if isEnabled else 1) 
+            else: 
+                cbox_AltTrack.set(False)
+                self.optionMenu.entryconfigure("Alternate audio track", state='disabled')
+        self.optionMenu.add_checkbutton(label="Alternate audio track", variable=cbox_AltTrack, command=onClick_AltTrack)
+        # autoplay
+        cbox_Autoplay = tk.BooleanVar()
+        def onClick_Autoplay():
+            isEnabled = cbox_Autoplay.get()
+            self.video.playOnOpen = isEnabled
+        self.optionMenu.add_checkbutton(label="Autoplay", variable=cbox_Autoplay, command=onClick_Autoplay)
+        # loop playback
+        cbox_LoopPlayback = tk.BooleanVar()
+        self.optionMenu.add_checkbutton(label="Loop Playback", variable=cbox_LoopPlayback)
+        # change arrow key functionality
+        self.optionMenu.add_separator()
+        self.seekSpeedMenu = tk.Menu(self.optionMenu, tearoff=0)
+        selectedSeekSpeed = tk.IntVar(None, 10000)
+        self.seekSpeedMenu.add_radiobutton(label="1s", variable=selectedSeekSpeed, value=1000)
+        self.seekSpeedMenu.add_radiobutton(label="5s", variable=selectedSeekSpeed, value=5000)
+        self.seekSpeedMenu.add_radiobutton(label="10s (default)", variable=selectedSeekSpeed, value=10000)
+        self.optionMenu.add_cascade(label="Set seek time", menu=self.seekSpeedMenu)
+
+
+        # pack bools and option functions into list for later
+        self.options = {"AltTrack": cbox_AltTrack, "Autoplay": cbox_Autoplay, "LoopPlayback": cbox_LoopPlayback, "SeekTime": selectedSeekSpeed}
+        self.optionFunctions = [onClick_AltTrack, onClick_Autoplay]
+
+
+        self.menuBar.add_cascade(label="Menu", menu=self.controlMenu)
+        self.menuBar.add_cascade(label="Options", menu=self.optionMenu)
+        self.parent.root.config(menu=self.menuBar)
+
+        # create video player
+        self.video = video.VideoPlayer(self.root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40, restrictLeftButton=self.actionBar.setLeft, restrictRightButton=self.actionBar.setRight, unrestrictLeftButton=self.actionBar.resetLeft, unrestrictRightButton=self.actionBar.resetRight, clipScene=self, menuBar=self.menuBar)
 
         # add listeners
         self.root.bind('<Button-1>', self.onClick)
@@ -270,13 +330,24 @@ class ClipScene(tk.Frame):
         self.leftTime = 0
         self.rightTime = self.video.player.get_length()
 
+    def updateOptions(self):
+        """
+            Updates the currently set options on the current video
+        """
+        for fcn in self.optionFunctions:
+            fcn()
+
+
     def onClick(self, event):
         """
-            Detects all clicks on the window
+            Detects all left clicks on the window
         """
         if event.widget != self.footerBar.descBar.box:
             self.footerBar.descBar.isBoxFocused = False
             self.root.focus()
+
+        if event.widget == self.video.canvas:
+            self.video.onClick(event=event)
 
     def onKeyPress(self, event):
         """
@@ -289,7 +360,30 @@ class ClipScene(tk.Frame):
         controls = {"Space": "Play/Pause", "\u2190": "Seek left", "\u2192": "Seek right", "\u2191": "Volume up", "\u2193": "Volume down", "F": "Fullscreen", "Esc": "Leave fullscreen", "Home": "Seek to start", "End": "Seek to last 20s", ",": "Rewind 1 frame", ".": "Seek 1 frame ahead", "M": "Toggle mute", "0-9": "Seek", "E/R": "Set trim position", "Ctrl+E/R": "Reset trim position", "Shift+E/R": "Shift current trim position"}
         maxLen = 20
         tab = '\t'
-        messagebox.showinfo("Video Controls", "".join(f"{key:{6}}\t{tab if len(key) <= 8 else ''}{value}\n" for key, value in controls.items()))       
+        messagebox.showinfo("Video Controls", "".join(f"{key:{6}}\t{tab if len(key) <= 8 else ''}{value}\n" for key, value in controls.items()))     
+
+    def promptSkip(self):
+        """
+            Prompts the user to skip the current clip
+        """
+        result = messagebox.askokcancel("Skip", "Skip this clip?")
+        if result == True:
+            self.footerBar.nextButton.onClick(skipTrim=True)
+
+    def promptSkipAll(self):
+        """
+            Prompts the user if they want to skip the rest of the clips and trim, also ignores current clip
+        """  
+        result = messagebox.askokcancel("Skip all", "Skip the rest of the videos and begin trimming?")
+        if result == True:
+            self.parent.setScene(Scene.SCENE_TRIM)
+
+    def saveClip(self):
+        """
+            To be used to save the current clip without moving to the next video
+        """
+        self.footerBar.nextButton.onClick(skipTrim=False, nextVideo=False, prevVideo=False)
+            
 
 class FramePerfectButton(tk.Frame):
     """
@@ -311,7 +405,7 @@ class ResetButton(tk.Frame):
         self.isLeft = isLeft
         self.clipScene = clipScene
 
-        image = Image.open("images/resetLeft.png" if isLeft else "images/resetRight.png")
+        image = Image.open(getResourcePath("images/resetLeft.png") if isLeft else getResourcePath("images/resetRight.png"))
         image.thumbnail((buttonSize, buttonSize))
         self.image = ImageTk.PhotoImage(image)
 
@@ -405,14 +499,24 @@ class ActionBar(tk.Frame):
 class NextButton(tk.Frame):
     def __init__(self, parent, clipScene: ClipScene, mainApp: MainApp):
         super().__init__(parent)
+        self.parent = parent
         self.clipScene = clipScene
         self.mainApp = mainApp
 
-        self.button = tk.Button(self, width=10, text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done", command=self.onClick, bg="#bbbbbb")
+        self.button = tk.Button(self, width=10, text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done", command=lambda: self.onClick(skipTrim=False, nextVideo=True, prevVideo=False), bg="#bbbbbb")
         self.button.config(state="disabled")
         self.button.pack()
 
-    def onClick(self):
+    def onClick(self, skipTrim: bool, nextVideo: bool, prevVideo: bool):
+        """
+            skipTrim: Processes the click but ignores the current video for trimming
+            nextVideo: Processes the click but does not move to the next video
+        """
+
+        # pause video
+        if not self.parent.parent.video.actionBar.bPause.isPaused:
+            self.parent.parent.video.actionBar.bPause.togglePause()
+
         # disable double press
         self.button.config(state="disabled")
         self.clipScene.footerBar.descBar.box.config(state="disabled")
@@ -423,40 +527,62 @@ class NextButton(tk.Frame):
 
 
         # save picked times
-        self.mainApp.trimData.append(dict([("description", self.clipScene.footerBar.descBar.boxContents.get()), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime), ("fullVideoLength", self.clipScene.video.player.get_length()), ("isFramePerfect", self.clipScene.framePerfectButton.isSet.get() == 1)]))
+        if not skipTrim:
+            self.mainApp.trimData.append(dict([("description", self.clipScene.footerBar.descBar.boxContents.get()), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime), ("fullVideoLength", self.clipScene.video.player.get_length()), ("isFramePerfect", self.clipScene.framePerfectButton.isSet.get() == 1), ("inputPath", self.mainApp.videoPaths[self.clipScene.currentVideo-1])]))
 
-        if self.clipScene.currentVideo == self.clipScene.totalVideos:  # done
-            self.mainApp.setScene(Scene.SCENE_TRIM)
-        else:
-            #
-            # change to next video
-            #
-            self.clipScene.currentVideo += 1
-
-            # update text
-            self.button.config(text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done")
-            self.clipScene.tFileCount.config(text=f"{self.clipScene.currentVideo} of {self.clipScene.totalVideos}")
-            filename = self.mainApp.videoPaths[self.clipScene.currentVideo-1].split("/")[-1][:100]
-            self.clipScene.tFilename.config(text=filename)
-            self.clipScene.footerBar.descBar.boxContents.set("")
-
-            # reset frame perfect check
-            self.clipScene.framePerfectButton.isSet.set(0)
-
-            # replace file count to fit
-            self.mainApp.root.update()
-            self.clipScene.tFileCount.place(x=video.WINDOW_WIDTH-5-self.clipScene.tFileCount.winfo_width(), y=2)
+        if nextVideo or prevVideo:
 
             # update video
-            self.clipScene.video.openVideo(self.mainApp.videoPaths[self.clipScene.currentVideo-1])
+            self.clipScene.currentVideo += 1 if nextVideo else -1   # +1 if nextVideo / -1 if prevVideo
 
-            # reenable text entry
-            self.clipScene.footerBar.descBar.box.config(state="normal")
+            # if prevVideo, remove previous clip as well
+            if prevVideo:
+                self.mainApp.trimData.pop()
+
+            # update previous video button
+            self.clipScene.controlMenu.entryconfigure("Previous video", state='normal' if self.clipScene.currentVideo > 1 else 'disabled')
+
+            if self.clipScene.currentVideo > self.clipScene.totalVideos:  # done
+                self.mainApp.setScene(Scene.SCENE_TRIM)
+            else:
+
+                # update text
+                self.button.config(text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done")
+                self.clipScene.tFileCount.config(text=f"{self.clipScene.currentVideo} of {self.clipScene.totalVideos}")
+                filename = self.mainApp.videoPaths[self.clipScene.currentVideo-1].split("/")[-1][:100]
+                self.clipScene.tFilename.config(text=filename)
+                self.clipScene.footerBar.descBar.boxContents.set("")
+
+                # reset frame perfect check
+                self.clipScene.framePerfectButton.isSet.set(0)
+
+                # replace file count to fit
+                self.mainApp.root.update()
+                self.clipScene.tFileCount.place(x=video.WINDOW_WIDTH-5-self.clipScene.tFileCount.winfo_width(), y=2)
+
+                # update video
+                self.clipScene.video.openVideo(self.mainApp.videoPaths[self.clipScene.currentVideo-1])
+
+                # reenable text entry
+                self.clipScene.footerBar.descBar.box.config(state="normal")
+        else:
+            # do not transition to the next video, just reset data
+            self.clipScene.footerBar.descBar.boxContents.set("")    # reset description
+            self.clipScene.framePerfectButton.isSet.set(0)          # reset frame perfect check
+            self.clipScene.footerBar.descBar.box.config(state="normal")     # reenable text entry
+
+            # reset restrictions
+            self.clipScene.video.unrestrictPlayback()
+
+            # re-pause if not already set
+            if not self.parent.parent.video.actionBar.bPause.isPaused:
+                self.parent.parent.video.actionBar.bPause.togglePause()
 
 
 class DescriptionBar(tk.Frame):
     def __init__(self, parent, nextButton: NextButton):
         super().__init__(parent)
+        self.parent = parent
         self.isBoxFocused = False
         self.nextButton = nextButton
         
@@ -487,6 +613,7 @@ class DescriptionBar(tk.Frame):
         text = self.boxContents.get()
         if text == "":
             self.nextButton.button.config(state="disabled")
+            self.parent.parent.controlMenu.entryconfigure("Save clip", state='disabled')
             return
 
         # remove excess text
@@ -526,6 +653,7 @@ class DescriptionBar(tk.Frame):
                 break
 
         self.nextButton.button.config(state="normal" if len(san_text) > 0 and hasNonSpaceChar else "disabled")
+        self.parent.parent.controlMenu.entryconfigure("Save clip", state='normal' if len(san_text) > 0 and hasNonSpaceChar else "disabled")
 
     def ignore(self, event):
         """
@@ -537,6 +665,7 @@ class DescriptionBar(tk.Frame):
 class FooterBar(tk.Frame):
     def __init__(self, parent, clipScene: ClipScene, mainApp: MainApp):
         super().__init__(parent)
+        self.parent = parent
 
         self.nextButton = NextButton(self, clipScene=clipScene, mainApp=mainApp)
         self.descBar = DescriptionBar(self, nextButton=self.nextButton)
@@ -566,8 +695,15 @@ class TrimScene(tk.Frame):
         self.output = OutputConsole(self)
         self.output.pack(fill="both", expand=True)
 
-        self.button = tk.Button(self, command=self.buttonOnClick, text="Start", width=9, height=1)
-        self.button.pack(anchor="e")
+        self.buttonFrame = tk.Frame(self)
+        self.buttonFrame.pack(anchor="e")
+
+        self.skipButton = tk.Button(self.buttonFrame, command=self.skipButtonOnClick, text="Skip", width=9, height=1)
+        self.skipButton.grid(column=0, row=0)
+        self.skipButton.grid_forget()       # hide until needed
+
+        self.startButton = tk.Button(self.buttonFrame, command=self.startButtonOnClick, text="Start", width=9, height=1)
+        self.startButton.grid(column=1, row=0)
 
         self.progressBar = ProgressBar(self)
         self.progressBar.pack(side="bottom", pady=0)
@@ -575,13 +711,30 @@ class TrimScene(tk.Frame):
         # properties
         self.videoCount = 0
         self.a = False
-    def buttonOnClick(self):
-        self.button.config(text="Start", state="disabled")
+
+    def skipButtonOnClick(self):
+        self.skipButton.grid_forget()   # hide skip button
+
+        # update progress bar
+        self.videoCount += 1
+        self.progressBar.bar["value"] = self.videoCount / len(self.mainApp.trimData) * 100
+        self.progressBar.update()
+        self.root.update_idletasks()
+
+        # start next video
+        self.startButtonOnClick()
+
+
+
+    def startButtonOnClick(self):
+        self.startButton.config(text="Start", state="disabled")
+        self.skipButton.grid_forget()   # hide skip button
 
         # perform trim on all videos
         for trimData in self.mainApp.trimData[self.videoCount:]:
-            inputPath = self.mainApp.videoPaths[self.videoCount]
-            outputPath = f"{self.mainApp.destFolder}/({self.videoCount+1}) {trimData['description']}.mp4"
+            inputPath = trimData["inputPath"]
+            maxOrder = self.getFileOrder(self.mainApp.destFolder)
+            outputPath = f"{self.mainApp.destFolder}/({maxOrder}) {trimData['description']}.mp4"
             startTime = trimData["startTime"] / 1000
             endTime = trimData["endTime"] / 1000
             isFramePerfect = trimData["isFramePerfect"]
@@ -596,7 +749,7 @@ class TrimScene(tk.Frame):
             self.filename.config(text=f"Status: {trimmedText}{'...' if font.Font().measure(trimData['description']) > trimWidth else ''}")
 
             self.remainder.config(text=f"Remaining: {len(self.mainApp.trimData) - self.videoCount}")
-            self.log(f"Trimming ({self.videoCount+1}) \"{trimData['description']}\" [{round(startTime)} - {round(endTime)}] {'and re-encoding' if isFramePerfect else ''}")
+            self.log(f"Trimming ({maxOrder}) \"{trimData['description']}\" [{round(startTime)} - {round(endTime)}] {'and re-encoding' if isFramePerfect else ''}")
             self.filename.update()
             self.remainder.update()
             self.output.output.update()
@@ -614,9 +767,10 @@ class TrimScene(tk.Frame):
                 if os.path.exists(outputPath):
                     self.log(f"[WARNING] File remains in directory {outputPath}")
 
-            # prompt to try again if not completed
+            # prompt to try again or skip if not completed
             if not isVideoProcessed:
-                self.button.config(state="normal", text="Try Again")
+                self.startButton.config(state="normal", text="Try Again")
+                self.skipButton.grid(column=0, row=0)       # display skip button
                 return
 
 
@@ -632,7 +786,7 @@ class TrimScene(tk.Frame):
         self.log("Done.")
 
         # update button to close
-        self.button.config(state="normal", text="Close", command=self.mainApp.closeApp)
+        self.startButton.config(state="normal", text="Close", command=self.mainApp.closeApp)
 
     def log(self, message: str):
         """
@@ -646,7 +800,31 @@ class TrimScene(tk.Frame):
         self.output.output.configure(state="disabled")
         self.output.output.see(tk.END)
             
+    def getFileOrder(self, directoryPath: str):
+        """
+            Returns the highest file number within the directory path +1.
+            The file number is given by (X) before the filenames
+        """
+        files = os.listdir(directoryPath)
         
+        maxOrder = 0
+        for file in files:
+            if len(file) < 3: continue
+            if file[0] != '(': continue
+
+            split = file.split(')')[0]
+            if len(split) == len(file): continue
+            split = split[1:]
+
+            if not split.isnumeric: continue
+            split = float(split)
+            if split != int(split): continue
+            value = int(split)
+            
+            if value > maxOrder: maxOrder = value
+
+        print(maxOrder+1)
+        return maxOrder + 1 
         
 
         
@@ -700,10 +878,10 @@ if __name__ == "__main__":
     root.title("Bulk Video Trimmer")
     root.geometry("400x100")
     root.resizable(width=False, height=False)
-    root.iconbitmap("images/logo.ico")
+    root.iconbitmap(getResourcePath("images/logo.ico"))
 
     app = MainApp(root)
-    app.pack(side="left")
-    app.setScene(Scene.SCENE_INITIAL)
+    app.pack(fill="both", expand=True)
+    app.setScene(Scene.SCENE_CLIPS)
 
     root.mainloop()

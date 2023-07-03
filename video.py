@@ -4,12 +4,19 @@
 # Contains a VideoPlayer class to encapsulate everything needed to create a video player
 #
 
+import os
+os.add_dll_directory(os.getcwd())
+import sys
+try:
+    os.add_dll_directory(sys._MEIPASS)
+except:pass
+
 import tkinter as tk
 import vlc
 import threading
 import time
-import gui
 from PIL import Image, ImageTk
+import gui
 
 WINDOW_HEIGHT = 649
 WINDOW_WIDTH = 1024
@@ -45,6 +52,7 @@ class VideoPlayer(tk.Frame):
         self.unrestrictRightButton = unrestrictRightButton
         self.clipScene = clipScene
         self.menuBar = menuBar
+        self.isWindowFocused = True
 
         # properties
         self.playOnOpen = playOnOpen
@@ -55,6 +63,8 @@ class VideoPlayer(tk.Frame):
         # init vlc instance
         self.instance = vlc.Instance()
         self.player = self.instance.media_player_new()
+        self.player.video_set_mouse_input(False)
+        self.player.video_set_key_input(False)
         
         # init properties
         self.player.audio_set_volume(self.volume)
@@ -75,6 +85,15 @@ class VideoPlayer(tk.Frame):
         # fullscreen button, initialized with a list of all widgets to be resized
         self.bFullscreen = FullscreenButton(self, root=root, size=self.buttonSize)
 
+        # video interaction (clicks)
+        self.lastVideoClick = 0
+        self.videoDoubleClickDetected = False
+
+        
+            
+        
+        
+
         # display elements
         self.background.place(x=0, y=0)
         self.canvas.place(x=0,y=0)
@@ -94,12 +113,59 @@ class VideoPlayer(tk.Frame):
         self.progressBar.bind("<Enter>", self.onHover_ProgressBar)
         self.progressBar.bind("<Leave>", self.onLeave_ProgressBar)
         root.bind("<FocusIn>", self.onWindowFocus)
+        root.bind("<Button-1>", self.onClick)
+        root.bind("<FocusOut>", self.onWindowUnfocus)
+
+    def onClick(self, event):
+        """
+            On click anywhere in the window
+        """
+        if event.widget != self.canvas: return
+        self.parent.update_idletasks()  # update focus
+        def _afterFocus():
+            if not self.isWindowFocused: return       # only check when the window is focused
+            
+            # check for left click on canvas
+            videoX1, videoY1 = self.canvas.winfo_rootx(), self.canvas.winfo_rooty()
+            videoX2, videoY2 = videoX1 + self.canvas.winfo_width(), videoY1 + self.canvas.winfo_height() - (self.progressBarHeight * 2 if self.progressBar.isHovering else 1)
+            
+            # reset focus
+            if self.clipScene != None:
+                self.clipScene.footerBar.descBar.isBoxFocused = False
+                self.parent.focus()
+
+            
+            def checkForDoubleClick():
+                timeSinceLastClick = time.time() - self.lastVideoClick
+                if timeSinceLastClick >= .24 and not self.videoDoubleClickDetected:
+                    self.bPause.onClick()
+                self.videoDoubleClickDetected = False
+
+            timeSinceLastClick = time.time() - self.lastVideoClick
+            if timeSinceLastClick >= .24: 
+                self.after(250, checkForDoubleClick)
+
+            if timeSinceLastClick < .24:
+                self.videoDoubleClickDetected = True      # if this is set to true, then don't allow pause to toggle
+                self.bFullscreen.toggleFullscreen()                             
+            
+
+            self.lastVideoClick = time.time()
+
+        # exec after focus catches up
+        self.after(100, _afterFocus)
+            
+
 
     def onWindowFocus(self, event):
         """
             Used to avoid 0 size window on Win+D keypress
         """
         self.parent.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
+        self.isWindowFocused = True
+
+    def onWindowUnfocus(self, event):
+        self.isWindowFocused = False
 
     def onHover_ProgressBar(self, event):
         self.progressBar.place(x=0, y=(self.screenHeight if not self.bFullscreen.isFullscreen else self.parent.winfo_screenheight()-self.progressBarHeight) - self.progressBar.height)
@@ -124,16 +190,15 @@ class VideoPlayer(tk.Frame):
     def onKeyPress(self, event):
         key = event.keysym
         if key == "space":
-            self.bPause.togglePause()       
-
-            # do not toggle pause if in restricted mode and past boundary
-            while self.player.get_state() == vlc.State.Opening: pass
-            if self.enableRestrictedPlayback and (round(self.player.get_position(), 6) >= round(self.restrictRight / self.player.get_length(), 6) or round(self.player.get_position(), 6) < round(self.restrictLeft / self.player.get_length(), 6)):  
-                self._setPlayerPosition(0)   # set back to start  
+            self.bPause.onClick()
         elif key == "Left":
-            self.seek(-10000)
+            seekTime = 10000
+            if self.clipScene != None: seekTime = self.clipScene.options["SeekTime"].get()
+            self.seek(-seekTime)
         elif key == "Right":
-            self.seek(10000)
+            seekTime = 10000
+            if self.clipScene != None: seekTime = self.clipScene.options["SeekTime"].get()
+            self.seek(seekTime)
         elif key == "Up":
             self.volume = min(100, self.volume + 5)
             self.player.audio_set_volume(self.volume)
@@ -271,6 +336,14 @@ class VideoPlayer(tk.Frame):
             self._setPlayerPosition(newTime/duration)
 
     def openVideo(self, filepath: str):
+        # check if video exists
+        if not os.path.exists(filepath):
+            print(f"Could not open video [{filepath}]")
+            return
+        
+        # wait until video auto-pauses
+        while self.player.is_playing(): pass
+
         # reset values
         self.lastEndStateTime = 0
         self.duration = 0
@@ -294,6 +367,10 @@ class VideoPlayer(tk.Frame):
 
         self.isVideoOpened = True
         self.unrestrictPlayback()
+
+        # update options
+        if self.clipScene != None:
+            self.clipScene.updateOptions()
 
 
     def play(self):
@@ -319,10 +396,13 @@ class VideoPlayer(tk.Frame):
             self.lastEndStateTime = time.time()
         timeSinceLastEndState = time.time() - self.lastEndStateTime
 
-        # pause if at end of video
+        # pause/loop if at end of video
         framesToEnd = duration - self.player.get_time()
         if self.player.get_state() == vlc.State.Playing and framesToEnd < 250:
-            self.player.pause()
+            if self.clipScene.options["LoopPlayback"].get():
+                self._setPlayerPosition(0)
+            else:
+                self.player.pause()
 
         # update pause button
         playState = self.player.get_state()
@@ -363,10 +443,26 @@ class VideoPlayer(tk.Frame):
                 self.actionBar.playbackTimer.setTime(self.player.get_time() / 1000)
 
         # pause if in restricted mode and past boundary
+        # or replay in autoplay mode
         if duration != 0:
-            if self.enableRestrictedPlayback and round(self.player.get_position(), 6) >= round(self.restrictRight / duration, 6): 
-                if not self.bPause.isPaused: self.bPause.togglePause() 
-                self._setPlayerPosition(self.restrictRight / duration) 
+            if self.enableRestrictedPlayback and round(self.player.get_time(), 6) > round(self.restrictRight, 6): 
+                if self.clipScene.options["LoopPlayback"].get():
+                    if not self.progressBar.isClicking and not self.bPause.isPaused:
+                        self._setPlayerPosition(0)
+                else:
+                    if not self.bPause.isPaused: 
+                        self.bPause.togglePause() 
+                    
+                    
+                    if self.clipScene.framePerfectButton.isSet.get() == 1:
+                        # delay needed to process recent pause
+                        self.parent.after(50, lambda: self._setPlayerPosition(self.restrictRight / duration))    
+                    else:
+                        self._setPlayerPosition(self.restrictRight / duration)     
+
+                    
+
+                   
 
 
         # Schedule the next update
@@ -488,7 +584,7 @@ class FullscreenButton(tk.Frame):
         self.timeBetweenToggles = .2
         self.widgetData = {}
 
-        image = Image.open("images/fullscreen.png")
+        image = Image.open(gui.getResourcePath("images/fullscreen.png"))
         image.thumbnail((size, size))
         self.image = ImageTk.PhotoImage(image)
         self.button = tk.Button(self, width=size, command=self.toggleFullscreen, image=self.image, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
@@ -650,7 +746,7 @@ class VolumeButton(tk.Frame):
         self.isMuted = False
         
         #images
-        images = [Image.open("images/volume-mute.png"), Image.open("images/volume-min.png"), Image.open("images/volume-mid.png"), Image.open("images/volume-max.png")]
+        images = [Image.open(gui.getResourcePath("images/volume-mute.png")), Image.open(gui.getResourcePath("images/volume-min.png")), Image.open(gui.getResourcePath("images/volume-mid.png")), Image.open(gui.getResourcePath("images/volume-max.png"))]
         for image in images: image.thumbnail((size, size))
         self.images = [ImageTk.PhotoImage(image) for image in images]
         self.bVolume = tk.Button(self, width=size, command=self.toggleMute, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
@@ -722,18 +818,25 @@ class PauseButton(tk.Frame):
         self.isPaused = startPaused
         self.progressBar = progressBar
 
-        self.imPlay = Image.open("images/play.png")
-        self.imPause = Image.open("images/pause.png")
+        self.imPlay = Image.open(gui.getResourcePath("images/play.png"))
+        self.imPause = Image.open(gui.getResourcePath("images/pause.png"))
         self.imPlay.thumbnail((size, size))
         self.imPause.thumbnail((size, size))
         self.playImage = ImageTk.PhotoImage(self.imPlay)
         self.pauseImage = ImageTk.PhotoImage(self.imPause)
 
-        self.bPause = tk.Button(self, width=size, command=self.togglePause, image=self.playImage if startPaused else self.pauseImage, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
+        self.bPause = tk.Button(self, width=size, command=self.onClick, image=self.playImage if startPaused else self.pauseImage, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
         self.bPause.image = self.playImage if startPaused else self.pauseImage
 
         self.bPause.pack()
 
+    def onClick(self):
+        self.togglePause()       
+        
+        # reset on past boundary
+        while self.player.get_state() == vlc.State.Opening: pass
+        if self.parent.parent.enableRestrictedPlayback and (round(self.player.get_position(), 6) >= round(self.parent.parent.restrictRight / self.player.get_length(), 6) or round(self.player.get_position(), 6) < round(self.parent.parent.restrictLeft / self.player.get_length(), 6)):  
+            self.parent.parent._setPlayerPosition(0)   # set back to start  
 
     def togglePause(self):
         if not self.parent.parent.isVideoOpened: return
@@ -752,6 +855,7 @@ class PauseButton(tk.Frame):
             self.player.play()          
             self.setUnpaused()   
             self.progressBar.setValue(0) # update bar
+            self.parent.parent.clipScene.updateOptions()
 
         if not self.isPaused:
             self.player.pause()
@@ -781,7 +885,7 @@ class SkipButton(tk.Frame):
         self.isForwardSkip = isForwardSkip
         self.progressBar = progressBar
 
-        image = Image.open("images/skip-15.png" if isForwardSkip else "images/back-15.png")
+        image = Image.open(gui.getResourcePath("images/skip-15.png")  if isForwardSkip else gui.getResourcePath("images/back-15.png"))
         image.thumbnail((size, size))
         self.image = ImageTk.PhotoImage(image)
 
@@ -806,12 +910,13 @@ class SkipButton(tk.Frame):
                 self.player.play()
                 self.pauseButton.setUnpaused()
                 self.parent.parent._setPlayerPosition(max(0, duration-15000))
+                self.parent.parent.clipScene.updateOptions()
             
             while self.player.get_state() == vlc.State.Opening: pass
             self.player.pause()
             self.parent.bPause.setPaused()
                 
-
+        
         if newTime < 0: 
             self.parent.parent._setPlayerPosition(0)
         elif newTime > duration-250:    
@@ -864,6 +969,7 @@ class ProgressBar(tk.Frame):
             self.player.stop()
             self.player.play()
             self.parent.bPause.setUnpaused()
+            self.parent.clipScene.updateOptions()
         
         if 0 < percent < 1:
             self.parent._setPlayerPosition(percent)
@@ -882,6 +988,7 @@ class ProgressBar(tk.Frame):
             self.player.play()
             self.parent.bPause.setUnpaused()
             self.parent._setPlayerPosition(percent)
+            self.parent.clipScene.updateOptions()
 
 
             while self.player.get_state() == vlc.State.Opening: pass
@@ -968,8 +1075,6 @@ class ProgressBar(tk.Frame):
         if self.parent.enableRestrictedPlayback:
             self.canvas.coords(self.restrictBar, int(leftPercent * self.width), 0, int(rightPercent * self.width), self.height * 2)
 
-
-
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("Bulk Video Trimmer")
@@ -979,8 +1084,8 @@ if __name__ == "__main__":
     video = VideoPlayer(root, screenWidth=WINDOW_WIDTH, screenHeight=int(root.winfo_screenheight()/2), playOnOpen=False, backgroundHeight=40)
     video.place(x=0,y=0, width=root.winfo_screenwidth(), height=root.winfo_screenheight())
 
-
-    video.openVideo("test-long.mp4")
+    
+    video.openVideo("test.mp4")
     video.scheduleUpdates()
 
     root.mainloop()
