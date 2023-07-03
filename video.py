@@ -399,7 +399,7 @@ class VideoPlayer(tk.Frame):
         # pause/loop if at end of video
         framesToEnd = duration - self.player.get_time()
         if self.player.get_state() == vlc.State.Playing and framesToEnd < 250:
-            if self.clipScene.options["LoopPlayback"].get():
+            if self.clipScene.options["LoopPlayback"].get() and not self.enableRestrictedPlayback:
                 self._setPlayerPosition(0)
             else:
                 self.player.pause()

@@ -38,17 +38,12 @@ Section
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Bulk Video Trimmer" "NoModify" 1
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Bulk Video Trimmer" "NoRepair" 1
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Bulk Video Trimmer" "DisplayIcon" "$\"$INSTDIR\Bulk Video Trimmer.exe$\""
-
-    ; Add to PATH
-    $EnvVarUpdate $0 "PATH" "A" "HKLM" "$INSTDIR\ffmpeg\bin"  
 SectionEnd
 
 ; Create a shortcut on the desktop
 Section "Desktop Shortcut"
     SetShellVarContext all
-    SetOutPath $INSTDIR
-    SetShellVarContext current
-    ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" "Desktop"
+    StrCpy $0 $DESKTOP
     CreateShortcut "$0\Bulk Video Trimmer.lnk" "$INSTDIR\Bulk Video Trimmer.exe"
 SectionEnd
 
@@ -57,19 +52,18 @@ Section "Uninstall"
     ; Remove installed files
     Delete "$INSTDIR\*.*"
 
-    ; Remove the "images" folder
+    ; Remove folders
     RMDir /r "$INSTDIR\images"
+    RMDir /r "$INSTDIR\ffmpeg"
+    RMDir /r "$INSTDIR\plugins"
 
     ; Remove the installation directory
     RMDir "$INSTDIR"
 
     ; Remove the desktop shortcut
-    SetShellVarContext current
-    ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" "Desktop"
+    SetShellVarContext all
+    StrCpy $0 $DESKTOP
     Delete "$0\Bulk Video Trimmer.lnk"
-
-    ; Remove from PATH
-     $un.EnvVarUpdate $0 "PATH" "R" "HKLM" "$INSTDIR\ffmpeg\bin"  
 
     ; Remove the uninstaller registry entry
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Bulk Video Trimmer"
