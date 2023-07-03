@@ -338,13 +338,13 @@ class VideoPlayer(tk.Frame):
             self._setPlayerPosition(newTime/duration)
 
     def openVideo(self, filepath: str):
+        # stop video
+        self.player.stop()
+
         # check if video exists
         if not os.path.exists(filepath):
             print(f"Could not open video [{filepath}]")
             return
-        
-        # wait until video auto-pauses
-        while self.player.is_playing(): pass
 
         # reset values
         self.lastEndStateTime = 0
