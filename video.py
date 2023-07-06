@@ -169,6 +169,7 @@ class VideoPlayer(tk.Frame):
             self.isWindowFocused = True
 
     def onWindowUnfocus(self, event):
+        self.parent.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
         if self.parent.focus_displayof() == None:
             self.isWindowFocused = False
 

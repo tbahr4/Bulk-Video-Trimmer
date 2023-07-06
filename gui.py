@@ -589,7 +589,8 @@ class NextButton(tk.Frame):
 
             if self.clipScene.currentVideo > self.clipScene.totalVideos:  # done
                 # leave fullscreen
-                self.parent.parent.video.bFullscreen.toggleFullscreen(forceToggle=True)
+                if self.parent.parent.video.bFullscreen.isFullscreen:
+                    self.parent.parent.video.bFullscreen.toggleFullscreen(forceToggle=True)
 
                 self.parent.parent.video.isVideoOpened = False
                 self.parent.parent.video.player.stop()
