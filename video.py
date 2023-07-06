@@ -342,7 +342,9 @@ class VideoPlayer(tk.Frame):
 
     def openVideo(self, filepath: str):
         # stop video
+        print("STOP")
         self.player.stop()
+        print(self.player.is_playing())
 
         # check if video exists
         if not os.path.exists(filepath):
@@ -466,9 +468,10 @@ class VideoPlayer(tk.Frame):
                         self._setPlayerPosition(self.restrictRight / duration)     
 
         # update discord presence     
-        if self.mainApp.currentScene == gui.Scene.SCENE_CLIPS:
-            self.discordPresence.updateStatus(details="Clipping videos", state=f"{min(self.clipScene.currentVideo, self.clipScene.totalVideos)} of {self.clipScene.totalVideos}")   
-        self.discordPresence.sendUpdate()        
+        if self.discordPresence != None:
+            if self.mainApp.currentScene == gui.Scene.SCENE_CLIPS:
+                self.discordPresence.updateStatus(details="Clipping videos", state=f"{min(self.clipScene.currentVideo, self.clipScene.totalVideos)} of {self.clipScene.totalVideos}")   
+            self.discordPresence.sendUpdate()        
                    
 
         # Schedule the next update
