@@ -608,7 +608,7 @@ class FullscreenButton(tk.Frame):
 
         self.button.pack()
 
-    def toggleFullscreen(self):
+    def toggleFullscreen(self, forceToggle: bool = False):
         if not self.parent.isVideoOpened: return
         if time.time() - self.lastFullscreenToggle < self.timeBetweenToggles: return
         self.lastFullscreenToggle = time.time()

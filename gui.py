@@ -588,6 +588,9 @@ class NextButton(tk.Frame):
             self.clipScene.controlMenu.entryconfigure("Previous video", state='normal' if self.clipScene.currentVideo > 1 else 'disabled')
 
             if self.clipScene.currentVideo > self.clipScene.totalVideos:  # done
+                # leave fullscreen
+                self.parent.parent.video.bFullscreen.toggleFullscreen(forceToggle=True)
+
                 self.parent.parent.video.isVideoOpened = False
                 self.parent.parent.video.player.stop()
                 self.mainApp.setScene(Scene.SCENE_TRIM)
