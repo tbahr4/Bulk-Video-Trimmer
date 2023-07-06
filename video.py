@@ -301,6 +301,9 @@ class VideoPlayer(tk.Frame):
             self.restrictLeftButton.shiftLock(-5000)
         elif key in ["r","R"] and event.state == 9:         # Shift-r
             self.restrictRightButton.shiftLock(5000)
+        elif key == "Return":
+            if event.widget != self.clipScene.footerBar.descBar.box:        # already handled by gui
+                self.clipScene.footerBar.descBar.onReturnKey(event=None)
             
 
         
@@ -377,6 +380,7 @@ class VideoPlayer(tk.Frame):
         # update options
         if self.clipScene != None:
             self.clipScene.updateOptions()
+
 
 
     def play(self):
@@ -473,7 +477,9 @@ class VideoPlayer(tk.Frame):
         if self.discordPresence != None:
             if self.mainApp.currentScene == gui.Scene.SCENE_CLIPS:
                 self.discordPresence.updateStatus(details="Clipping videos", state=f"{min(self.clipScene.currentVideo, self.clipScene.totalVideos)} of {self.clipScene.totalVideos}")   
-            self.discordPresence.sendUpdate()        
+            self.discordPresence.sendUpdate()     
+
+           
                    
 
         # Schedule the next update

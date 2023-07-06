@@ -292,8 +292,21 @@ class ClipScene(tk.Frame):
         
 
 
-        # pack bools and option functions into list for later
-        self.optionFunctions = [onClick_AltTrack, onClick_Autoplay, onClick_AllowUnnamedFiles]
+        # pack bools and option functions into list for later, bools specify if the function will be auto-updated
+        self.optionFunctions = {
+            "onClick_AltTrack": {
+                "Function": onClick_AltTrack, 
+                "AutoUpdate": True
+            },
+            "onClick_Autoplay": {
+                "Function": onClick_Autoplay,
+                "AutoUpdate": True
+            },
+            "onClick_AllowUnnamedFiles": {
+                "Function": onClick_AllowUnnamedFiles,
+                "AutoUpdate": True
+            }
+        }
 
         # video and surrounding instances
         self.background = tk.Canvas(self, background=bg, width=video.WINDOW_WIDTH, height=video.WINDOW_HEIGHT, borderwidth=0, highlightthickness=0)
@@ -356,8 +369,11 @@ class ClipScene(tk.Frame):
         """
             Updates the currently set options on the current video
         """
-        for fcn in self.optionFunctions:
-            fcn()
+        for item in self.optionFunctions.keys():
+            function = self.optionFunctions[item]["Function"]
+            autoUpdate = self.optionFunctions[item]["AutoUpdate"]
+            if autoUpdate:
+                function()
 
 
     def onClick(self, event):
@@ -379,7 +395,7 @@ class ClipScene(tk.Frame):
             self.video.onKeyPress(event)
 
     def displayVideoControls(self):
-        controls = {"Space": "Play/Pause", "\u2190": "Seek left", "\u2192": "Seek right", "\u2191": "Volume up", "\u2193": "Volume down", "F": "Fullscreen", "Esc": "Leave fullscreen", "Home": "Seek to start", "End": "Seek to last 20s", ",": "Rewind 1 frame", ".": "Seek 1 frame ahead", "M": "Toggle mute", "0-9": "Seek", "E/R": "Set trim position", "Ctrl+E/R": "Reset trim position", "Shift+E/R": "Shift current trim position"}
+        controls = {"Space": "Play/Pause", "\u2190": "Seek left", "\u2192": "Seek right", "\u2191": "Volume up", "\u2193": "Volume down", "F": "Fullscreen", "Esc": "Leave fullscreen", "Home": "Seek to start", "End": "Seek to last 20s", ",": "Rewind 1 frame", ".": "Seek 1 frame ahead", "M": "Toggle mute", "0-9": "Seek", "E/R": "Set trim position", "Ctrl+E/R": "Reset trim position", "Shift+E/R": "Shift current trim position", "Enter": "Next video"}
         maxLen = 20
         tab = '\t'
         messagebox.showinfo("Video Controls", "".join(f"{key:{6}}\t{tab if len(key) <= 8 else ''}{value}\n" for key, value in controls.items()))     
@@ -528,6 +544,7 @@ class NextButton(tk.Frame):
         self.parent = parent
         self.clipScene = clipScene
         self.mainApp = mainApp
+        self.allowClicks = True
 
         self.button = tk.Button(self, width=10, text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done", command=lambda: self.onClick(skipTrim=False, nextVideo=True, prevVideo=False), bg="#bbbbbb")
         self.button.config(state="disabled" if not self.clipScene.options["AllowUnnamedFiles"].get() else "normal")
@@ -538,6 +555,8 @@ class NextButton(tk.Frame):
             skipTrim: Processes the click but ignores the current video for trimming
             nextVideo: Processes the click but does not move to the next video
         """
+        if not self.allowClicks: return
+        self.allowClicks = False
 
         # pause video
         if not self.parent.parent.video.actionBar.bPause.isPaused:
@@ -606,6 +625,14 @@ class NextButton(tk.Frame):
             if not self.parent.parent.video.actionBar.bPause.isPaused:
                 self.parent.parent.video.actionBar.bPause.togglePause()
 
+        # reenable clicks, or wait if empty inputs is enabled
+        if self.parent.parent.options["AllowUnnamedFiles"].get():
+            self.after(1000, lambda: setattr(self, "allowClicks", True))
+        else:
+            self.allowClicks = True
+        
+       
+
 
 class DescriptionBar(tk.Frame):
     def __init__(self, parent, nextButton: NextButton):
@@ -632,6 +659,8 @@ class DescriptionBar(tk.Frame):
         """
         if self.nextButton.button["state"] == "normal":
             self.nextButton.onClick(skipTrim=False, nextVideo=True, prevVideo=False) 
+
+            
 
         # return cursor
         self.isBoxFocused = False
@@ -692,6 +721,7 @@ class DescriptionBar(tk.Frame):
                 break
 
         self.nextButton.button.config(state="normal" if len(san_text) > 0 and hasNonSpaceChar else "disabled")
+        self.nextButton.allowClicks = True
         self.parent.parent.controlMenu.entryconfigure("Save clip", state='normal' if len(san_text) > 0 and hasNonSpaceChar else "disabled")
         
 
