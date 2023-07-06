@@ -45,10 +45,12 @@ class MainApp(tk.Frame):
     """
         The main gui application
     """
-    def __init__(self, parent):
+    def __init__(self, parent, discordPresence = None):
         super().__init__(parent)
         self.root = parent
         self.parent = parent
+        self.discordPresence = discordPresence
+        self.currentScene = Scene.SCENE_INITIAL
         
         # init scenes
         self.scene = None
@@ -63,6 +65,7 @@ class MainApp(tk.Frame):
     def setScene(self, scene: Scene):
         self.root.config(menu="") # remove menu
         if self.scene: self.scene.pack_forget()
+        self.currentScene = scene
 
         if scene == Scene.SCENE_INITIAL:
             if type(self.scene) == ClipScene:
@@ -81,7 +84,7 @@ class MainApp(tk.Frame):
                 self.videoPaths = ('multitrack.mp4','test.mp4','multitrack.mp4','test2.mp4','test3.mp4')
                 self.destFolder = "TestOutput"
 
-            self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder)
+            self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder, discordPresence=self.discordPresence, mainApp=self)
             self.scene.pack(fill="both", expand=True)
         elif scene == Scene.SCENE_TRIM:
             if type(self.scene) == ClipScene:
@@ -93,6 +96,8 @@ class MainApp(tk.Frame):
 
             self.scene = TrimScene(self, mainApp=self)
             self.scene.pack(fill="both", expand=True)
+
+            self.discordPresence.updateStatus(details="Trimming videos")
     
     def closeApp(self):
         self.parent.destroy()
@@ -230,12 +235,13 @@ class BeginButton(tk.Frame):
 # Clip Trimming Scene Elements
 #
 class ClipScene(tk.Frame):
-    def __init__(self, parent, root, videoPaths: list, destFolder: str):
+    def __init__(self, parent, root, videoPaths: list, destFolder: str, discordPresence = None, mainApp = None):
         super().__init__(parent)
         self.parent = parent
         self.root = root
         self.currentVideo = 1
         self.totalVideos = len(videoPaths)
+        self.discordPresence = discordPresence
 
         # video and surrounding instances
         self.background = tk.Canvas(self, background=bg, width=video.WINDOW_WIDTH, height=video.WINDOW_HEIGHT, borderwidth=0, highlightthickness=0)
@@ -293,7 +299,7 @@ class ClipScene(tk.Frame):
         self.parent.root.config(menu=self.menuBar)
 
         # create video player
-        self.video = video.VideoPlayer(self.root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40, restrictLeftButton=self.actionBar.setLeft, restrictRightButton=self.actionBar.setRight, unrestrictLeftButton=self.actionBar.resetLeft, unrestrictRightButton=self.actionBar.resetRight, clipScene=self, menuBar=self.menuBar)
+        self.video = video.VideoPlayer(self.root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40, restrictLeftButton=self.actionBar.setLeft, restrictRightButton=self.actionBar.setRight, unrestrictLeftButton=self.actionBar.resetLeft, unrestrictRightButton=self.actionBar.resetRight, clipScene=self, menuBar=self.menuBar, discordPresence=self.discordPresence, mainApp=mainApp)
 
         # add listeners
         self.root.bind('<Button-1>', self.onClick)

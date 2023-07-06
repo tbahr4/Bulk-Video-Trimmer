@@ -4,11 +4,12 @@
 # Contains a VideoPlayer class to encapsulate everything needed to create a video player
 #
 
+# add vlc libs to path
 import os
 os.add_dll_directory(os.getcwd())
 import sys
 try:
-    os.add_dll_directory(sys._MEIPASS)
+    os.add_dll_directory(sys._MEIPASS)  # try using temp folder for pyinstaller
 except:pass
 
 import tkinter as tk
@@ -25,7 +26,7 @@ WINDOW_WIDTH = 1024
 
 
 class VideoPlayer(tk.Frame):
-    def __init__(self, parent, screenWidth: int, screenHeight: int, playOnOpen: bool, backgroundHeight: int, restrictLeftButton = None, restrictRightButton = None, unrestrictLeftButton = None, unrestrictRightButton = None, clipScene = None, menuBar = None):
+    def __init__(self, parent, screenWidth: int, screenHeight: int, playOnOpen: bool, backgroundHeight: int, restrictLeftButton = None, restrictRightButton = None, unrestrictLeftButton = None, unrestrictRightButton = None, clipScene = None, menuBar = None, discordPresence = None, mainApp = None):
         """
             Params:
             screenWidth: the width of the video screen
@@ -53,6 +54,8 @@ class VideoPlayer(tk.Frame):
         self.clipScene = clipScene
         self.menuBar = menuBar
         self.isWindowFocused = True
+        self.discordPresence = discordPresence
+        self.mainApp = mainApp
 
         # properties
         self.playOnOpen = playOnOpen
@@ -462,10 +465,11 @@ class VideoPlayer(tk.Frame):
                     else:
                         self._setPlayerPosition(self.restrictRight / duration)     
 
-                    
-
+        # update discord presence     
+        if self.mainApp.currentScene == gui.Scene.SCENE_CLIPS:
+            self.discordPresence.updateStatus(details="Clipping videos", state=f"{min(self.clipScene.currentVideo, self.clipScene.totalVideos)} of {self.clipScene.totalVideos}")   
+        self.discordPresence.sendUpdate()        
                    
-
 
         # Schedule the next update
         self.after(10, self._update)
