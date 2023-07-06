@@ -390,6 +390,10 @@ class ClipScene(tk.Frame):
             To be used to save the current clip without moving to the next video
         """
         self.footerBar.nextButton.onClick(skipTrim=False, nextVideo=False, prevVideo=False)
+        
+        # special case: remove cursor from description box
+        self.footerBar.descBar.isBoxFocused = False
+        self.root.focus()
             
 
 class FramePerfectButton(tk.Frame):
