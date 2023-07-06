@@ -581,8 +581,9 @@ class NextButton(tk.Frame):
             self.clipScene.currentVideo += 1 if nextVideo else -1   # +1 if nextVideo / -1 if prevVideo
 
             # if prevVideo, remove previous clip as well
+            previousData = None
             if prevVideo:
-                self.mainApp.trimData.pop()
+                previousData = self.mainApp.trimData.pop()
 
             # update previous video button
             self.clipScene.controlMenu.entryconfigure("Previous video", state='normal' if self.clipScene.currentVideo > 1 else 'disabled')
@@ -613,6 +614,13 @@ class NextButton(tk.Frame):
 
                 # update video
                 self.clipScene.video.openVideo(self.mainApp.videoPaths[self.clipScene.currentVideo-1])
+
+                # if returninto to prevVideo, load previous settings
+                if prevVideo:
+                    self.parent.descBar.boxContents.set(previousData["description"])
+                    self.parent.parent.video.restrictPlayback(previousData["startTime"], previousData["endTime"])
+                    self.parent.parent.framePerfectButton.isSet.set(previousData["isFramePerfect"])
+                    self.parent.parent.video._setPlayerPosition(0)
 
                 # reenable text entry
                 self.clipScene.footerBar.descBar.box.config(state="normal")
