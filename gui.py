@@ -373,9 +373,7 @@ class ClipScene(tk.Frame):
         """
             Prompts the user to skip the current clip
         """
-        result = messagebox.askokcancel("Skip", "Skip this clip?")
-        if result == True:
-            self.footerBar.nextButton.onClick(skipTrim=True, nextVideo=True, prevVideo=False)
+        self.footerBar.nextButton.onClick(skipTrim=True, nextVideo=True, prevVideo=False)
 
     def promptSkipAll(self):
         """
