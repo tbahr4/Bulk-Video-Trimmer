@@ -283,10 +283,10 @@ class ClipScene(tk.Frame):
         # change arrow key functionality
         self.optionMenu.add_separator()
         self.seekSpeedMenu = tk.Menu(self.optionMenu, tearoff=0)
-        selectedSeekSpeed = tk.IntVar(None, 10000)
+        selectedSeekSpeed = tk.IntVar(None, 5000)
         self.seekSpeedMenu.add_radiobutton(label="1s", variable=selectedSeekSpeed, value=1000)
-        self.seekSpeedMenu.add_radiobutton(label="5s", variable=selectedSeekSpeed, value=5000)
-        self.seekSpeedMenu.add_radiobutton(label="10s (default)", variable=selectedSeekSpeed, value=10000)
+        self.seekSpeedMenu.add_radiobutton(label="5s (default)", variable=selectedSeekSpeed, value=5000)
+        self.seekSpeedMenu.add_radiobutton(label="10s", variable=selectedSeekSpeed, value=10000)
         self.optionMenu.add_cascade(label="Set seek time", menu=self.seekSpeedMenu)
 
 
