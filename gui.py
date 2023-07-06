@@ -604,10 +604,21 @@ class DescriptionBar(tk.Frame):
 
         # add listeners
         self.box.bind('<FocusIn>', self.onFocus)
-        self.box.bind('<Return>', lambda e: self.nextButton.onClick(skipTrim=False, nextVideo=True, prevVideo=False) if self.nextButton.button["state"] == "normal" else None)
+        self.box.bind('<Return>', self.onReturnKey)
 
         self.text.grid(column=0, row=0)
         self.box.grid(column=1, row=0, pady=3)
+
+    def onReturnKey(self, event):
+        """
+            Called when the enter key is detected by this widget
+        """
+        if self.nextButton.button["state"] == "normal":
+            self.nextButton.onClick(skipTrim=False, nextVideo=True, prevVideo=False) 
+
+        # return cursor
+        self.isBoxFocused = False
+        self.parent.parent.parent.parent.focus()
 
     def onFocus(self, event):
         self.isBoxFocused = True
