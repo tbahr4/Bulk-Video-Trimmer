@@ -383,6 +383,7 @@ class ClipScene(tk.Frame):
         """  
         result = messagebox.askokcancel("Skip all", "Skip the rest of the videos and begin trimming?")
         if result == True:
+            self.video.isVideoOpened = False
             self.video.player.stop()
             self.parent.setScene(Scene.SCENE_TRIM)
 
@@ -551,6 +552,7 @@ class NextButton(tk.Frame):
             self.clipScene.controlMenu.entryconfigure("Previous video", state='normal' if self.clipScene.currentVideo > 1 else 'disabled')
 
             if self.clipScene.currentVideo > self.clipScene.totalVideos:  # done
+                self.parent.parent.video.isVideoOpened = False
                 self.parent.parent.video.player.stop()
                 self.mainApp.setScene(Scene.SCENE_TRIM)
             else:

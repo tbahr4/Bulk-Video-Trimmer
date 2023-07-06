@@ -342,9 +342,8 @@ class VideoPlayer(tk.Frame):
 
     def openVideo(self, filepath: str):
         # stop video
-        print("STOP")
         self.player.stop()
-        print(self.player.is_playing())
+        self.isVideoOpened = False
 
         # check if video exists
         if not os.path.exists(filepath):
@@ -443,11 +442,14 @@ class VideoPlayer(tk.Frame):
             self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + 8, y=(self.screenHeight - 55) * (self.fullscreenScaleY if self.bFullscreen.isFullscreen else 1) + (22 if self.bFullscreen.isFullscreen else 0), width=0, height=0)
 
         # update playback timer
-        if self.isVideoOpened:
+        if self.isVideoOpened and self.player.get_state() != vlc.State.Stopped:
             if self.player.get_state() == vlc.State.Ended:
                 self.actionBar.playbackTimer.setTime(self.player.get_length() / 1000)
             elif timeSinceLastEndState > self.timeToUpdateEndState or self.player.get_time() != 0:
                 self.actionBar.playbackTimer.setTime(self.player.get_time() / 1000)
+        else:
+            self.actionBar.playbackTimer.setTime(0)
+            self.actionBar.playbackTimer.setDuration(0)
 
         # pause if in restricted mode and past boundary
         # or replay in autoplay mode
