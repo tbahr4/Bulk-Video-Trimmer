@@ -77,6 +77,10 @@ class MainApp(tk.Frame):
             self.scene.pack(pady=5, fill="both", expand=True)
             
         elif scene == Scene.SCENE_CLIPS:
+            if __name__ == "__main__":
+                self.videoPaths = ('multitrack.mp4','test.mp4','multitrack.mp4','test2.mp4','test3.mp4')
+                self.destFolder = "TestOutput"
+
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder)
             self.scene.pack(fill="both", expand=True)
         elif scene == Scene.SCENE_TRIM:
@@ -258,11 +262,7 @@ class ClipScene(tk.Frame):
         def onClick_AltTrack():
             isEnabled = cbox_AltTrack.get()
             if self.video.player.audio_get_track_count() >= 3:
-                    self.optionMenu.entryconfigure("Alternate audio track", state='normal')
                     self.video.player.audio_set_track(2 if isEnabled else 1) 
-            else: 
-                cbox_AltTrack.set(False)
-                self.optionMenu.entryconfigure("Alternate audio track", state='disabled')
         self.optionMenu.add_checkbutton(label="Alternate audio track", variable=cbox_AltTrack, command=onClick_AltTrack)
         # autoplay
         cbox_Autoplay = tk.BooleanVar()
