@@ -81,7 +81,7 @@ class MainApp(tk.Frame):
             
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__":
-                self.videoPaths = ('multitrack.mp4','test.mp4','multitrack.mp4','test2.mp4','test3.mp4')
+                self.videoPaths = ('test.mp4','test2.mp4','test3.mp4')
                 self.destFolder = "TestOutput"
 
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder, discordPresence=self.discordPresence, mainApp=self)
@@ -244,6 +244,57 @@ class ClipScene(tk.Frame):
         self.totalVideos = len(videoPaths)
         self.discordPresence = discordPresence
 
+        # instances
+        self.menuBar = tk.Menu(self)
+        self.controlMenu = tk.Menu(self.menuBar, tearoff=0)
+        self.optionMenu = tk.Menu(self.menuBar, tearoff=0)
+        
+
+        # options
+        self.options = dict()
+
+        # alternate track
+        cbox_AltTrack = tk.BooleanVar()
+        self.options["AltTrack"] = cbox_AltTrack
+        def onClick_AltTrack():
+            isEnabled = cbox_AltTrack.get()
+            if self.video.player.audio_get_track_count() >= 3:
+                    self.video.player.audio_set_track(2 if isEnabled else 1) 
+        self.optionMenu.add_checkbutton(label="Alternate audio track", variable=cbox_AltTrack, command=onClick_AltTrack)
+        # autoplay
+        cbox_Autoplay = tk.BooleanVar()
+        self.options["Autoplay"] = cbox_Autoplay
+        def onClick_Autoplay():
+            isEnabled = cbox_Autoplay.get()
+            self.video.playOnOpen = isEnabled
+        self.optionMenu.add_checkbutton(label="Autoplay", variable=cbox_Autoplay, command=onClick_Autoplay)
+        # loop playback
+        cbox_LoopPlayback = tk.BooleanVar()
+        self.options["LoopPlayback"] = cbox_LoopPlayback
+        self.optionMenu.add_checkbutton(label="Loop playback", variable=cbox_LoopPlayback)
+        # Allow unnamed files
+        cbox_AllowUnnamedFiles = tk.BooleanVar()
+        self.options["AllowUnnamedFiles"] = cbox_AllowUnnamedFiles
+        def onClick_AllowUnnamedFiles():
+            isEnabled = cbox_AllowUnnamedFiles.get()
+            self.footerBar.nextButton.button.config(state="normal" if isEnabled or len(self.footerBar.descBar.boxContents.get()) > 0 else "disabled")
+            self.controlMenu.entryconfigure("Save clip", state='disabled' if not self.options["AllowUnnamedFiles"].get() else "normal")
+        self.optionMenu.add_checkbutton(label="Allow unnamed files", variable=cbox_AllowUnnamedFiles, command=onClick_AllowUnnamedFiles)
+        # change arrow key functionality
+        self.optionMenu.add_separator()
+        self.seekSpeedMenu = tk.Menu(self.optionMenu, tearoff=0)
+        selectedSeekSpeed = tk.IntVar(None, 5000)
+        self.options["SeekTime"] = selectedSeekSpeed
+        self.seekSpeedMenu.add_radiobutton(label="1s", variable=selectedSeekSpeed, value=1000)
+        self.seekSpeedMenu.add_radiobutton(label="5s (default)", variable=selectedSeekSpeed, value=5000)
+        self.seekSpeedMenu.add_radiobutton(label="10s", variable=selectedSeekSpeed, value=10000)
+        self.optionMenu.add_cascade(label="Set seek time", menu=self.seekSpeedMenu)
+        
+
+
+        # pack bools and option functions into list for later
+        self.optionFunctions = [onClick_AltTrack, onClick_Autoplay, onClick_AllowUnnamedFiles]
+
         # video and surrounding instances
         self.background = tk.Canvas(self, background=bg, width=video.WINDOW_WIDTH, height=video.WINDOW_HEIGHT, borderwidth=0, highlightthickness=0)
         self.tFilename = tk.Label(self, text="None")
@@ -252,48 +303,12 @@ class ClipScene(tk.Frame):
         self.footerBar = FooterBar(self, clipScene=self, mainApp=self.parent)
         self.framePerfectButton = FramePerfectButton(self)
 
-        # instances
-        self.menuBar = tk.Menu(self)
-        self.controlMenu = tk.Menu(self.menuBar, tearoff=0)
-        self.optionMenu = tk.Menu(self.menuBar, tearoff=0)
         self.controlMenu.add_command(label="Controls", command=self.displayVideoControls)
         self.controlMenu.add_separator()
         self.controlMenu.add_command(label="Skip", command=self.promptSkip)
         self.controlMenu.add_command(label="Skip all", command=self.promptSkipAll)
-        self.controlMenu.add_command(label="Save clip", command=self.saveClip, state="disabled")
+        self.controlMenu.add_command(label="Save clip", command=self.saveClip, state="disabled" if not self.options["AllowUnnamedFiles"].get() else "normal")
         self.controlMenu.add_command(label="Previous video", command=lambda: self.footerBar.nextButton.onClick(skipTrim=True, nextVideo=False, prevVideo=True), state="disabled")
-
-        # options
-        # alternate track
-        cbox_AltTrack = tk.BooleanVar()
-        def onClick_AltTrack():
-            isEnabled = cbox_AltTrack.get()
-            if self.video.player.audio_get_track_count() >= 3:
-                    self.video.player.audio_set_track(2 if isEnabled else 1) 
-        self.optionMenu.add_checkbutton(label="Alternate audio track", variable=cbox_AltTrack, command=onClick_AltTrack)
-        # autoplay
-        cbox_Autoplay = tk.BooleanVar()
-        def onClick_Autoplay():
-            isEnabled = cbox_Autoplay.get()
-            self.video.playOnOpen = isEnabled
-        self.optionMenu.add_checkbutton(label="Autoplay", variable=cbox_Autoplay, command=onClick_Autoplay)
-        # loop playback
-        cbox_LoopPlayback = tk.BooleanVar()
-        self.optionMenu.add_checkbutton(label="Loop Playback", variable=cbox_LoopPlayback)
-        # change arrow key functionality
-        self.optionMenu.add_separator()
-        self.seekSpeedMenu = tk.Menu(self.optionMenu, tearoff=0)
-        selectedSeekSpeed = tk.IntVar(None, 5000)
-        self.seekSpeedMenu.add_radiobutton(label="1s", variable=selectedSeekSpeed, value=1000)
-        self.seekSpeedMenu.add_radiobutton(label="5s (default)", variable=selectedSeekSpeed, value=5000)
-        self.seekSpeedMenu.add_radiobutton(label="10s", variable=selectedSeekSpeed, value=10000)
-        self.optionMenu.add_cascade(label="Set seek time", menu=self.seekSpeedMenu)
-
-
-        # pack bools and option functions into list for later
-        self.options = {"AltTrack": cbox_AltTrack, "Autoplay": cbox_Autoplay, "LoopPlayback": cbox_LoopPlayback, "SeekTime": selectedSeekSpeed}
-        self.optionFunctions = [onClick_AltTrack, onClick_Autoplay]
-
 
         self.menuBar.add_cascade(label="Menu", menu=self.controlMenu)
         self.menuBar.add_cascade(label="Options", menu=self.optionMenu)
@@ -515,7 +530,7 @@ class NextButton(tk.Frame):
         self.mainApp = mainApp
 
         self.button = tk.Button(self, width=10, text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done", command=lambda: self.onClick(skipTrim=False, nextVideo=True, prevVideo=False), bg="#bbbbbb")
-        self.button.config(state="disabled")
+        self.button.config(state="disabled" if not self.clipScene.options["AllowUnnamedFiles"].get() else "normal")
         self.button.pack()
 
     def onClick(self, skipTrim: bool, nextVideo: bool, prevVideo: bool):
@@ -636,8 +651,8 @@ class DescriptionBar(tk.Frame):
         maxLength = 100
         text = self.boxContents.get()
         if text == "":
-            self.nextButton.button.config(state="disabled")
-            self.parent.parent.controlMenu.entryconfigure("Save clip", state='disabled')
+            self.nextButton.button.config(state="disabled" if not self.parent.clipScene.options["AllowUnnamedFiles"].get() else "normal")
+            self.parent.parent.controlMenu.entryconfigure("Save clip", state='disabled' if not self.parent.clipScene.options["AllowUnnamedFiles"].get() else "normal")
             return
 
         # remove excess text
@@ -684,6 +699,7 @@ class FooterBar(tk.Frame):
     def __init__(self, parent, clipScene: ClipScene, mainApp: MainApp):
         super().__init__(parent)
         self.parent = parent
+        self.clipScene = clipScene
 
         self.nextButton = NextButton(self, clipScene=clipScene, mainApp=mainApp)
         self.descBar = DescriptionBar(self, nextButton=self.nextButton)
