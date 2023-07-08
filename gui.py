@@ -68,6 +68,11 @@ class MainApp(tk.Frame):
         self.currentScene = scene
 
         if scene == Scene.SCENE_INITIAL:
+            # if set to initial scene, reset data
+            self.videoPaths = None
+            self.destFolder = None
+            self.trimData = []
+
             if type(self.scene) == ClipScene:
                 self.scene.video.place_forget()
             self.unbindAll()
@@ -77,8 +82,8 @@ class MainApp(tk.Frame):
             self.scene.pack(pady=5, fill="both", expand=True)
             
         elif scene == Scene.SCENE_CLIPS:
-            if __name__ == "__main__":
-                self.videoPaths = ('multitrack.mp4','test2.mp4','test3.mp4','nosound.mp4','nosound2.mp4')
+            if __name__ == "__main__" and self.videoPaths == None:
+                self.videoPaths = ('test.mp4','test2.mp4','test3.mp4','nosound.mp4','nosound2.mp4')
                 self.destFolder = "TestOutput"
 
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder, discordPresence=self.discordPresence, mainApp=self)
@@ -812,6 +817,10 @@ class TrimScene(tk.Frame):
         self.skipButton.grid(column=0, row=0)
         self.skipButton.grid_forget()       # hide until needed
 
+        self.restartButton = tk.Button(self.buttonFrame, command=self.restartButtonOnClick, text="Restart", width=9, height=1)
+        self.restartButton.grid(column=0, row=0)
+        self.restartButton.grid_forget()       # hide until needed
+
         self.startButton = tk.Button(self.buttonFrame, command=self.startButtonOnClick, text="Start", width=9, height=1)
         self.startButton.grid(column=1, row=0)
 
@@ -833,6 +842,9 @@ class TrimScene(tk.Frame):
 
         # start next video
         self.startButtonOnClick()
+
+    def restartButtonOnClick(self):
+        self.mainApp.setScene(Scene.SCENE_INITIAL)
 
 
 
@@ -902,6 +914,9 @@ class TrimScene(tk.Frame):
         # update button to close
         self.startButton.config(state="normal", text="Close", command=self.mainApp.closeApp)
 
+        # add reset button
+        self.restartButton.grid(column=0, row=0)
+
     def log(self, message: str):
         """
             Displays the log message to both the console and screen
@@ -958,22 +973,25 @@ class OutputConsole(tk.Frame):
         self.scrollBar.configure(command=self.output.yview)
 
 class ProgressBar(tk.Frame):
+    style = None
+
     def __init__(self, parent):
         super().__init__(parent)
 
         # styling for the progress bar
-        style = ttk.Style()
-        style.theme_create("style", parent="default", settings={
-            "TProgressbar": {
-                "configure": {
-                    "background": "lime",
-                    "troughcolor": "grey",
-                    "borderwidth": 1,
-                    "thickness": 2
+        if ProgressBar.style == None:
+            ProgressBar.style = ttk.Style()
+            ProgressBar.style.theme_create("style", parent="default", settings={
+                "TProgressbar": {
+                    "configure": {
+                        "background": "lime",
+                        "troughcolor": "grey",
+                        "borderwidth": 1,
+                        "thickness": 2
+                    }
                 }
-            }
-        })
-        style.theme_use("style")
+            })
+            ProgressBar.style.theme_use("style")
 
         self.bar = ttk.Progressbar(self, mode="determinate", maximum=100, length=400)
         self.bar.pack()
