@@ -298,8 +298,17 @@ class ClipScene(tk.Frame):
         self.options["AllowUnnamedFiles"] = cbox_AllowUnnamedFiles
         def onClick_AllowUnnamedFiles():
             isEnabled = cbox_AllowUnnamedFiles.get()
-            self.footerBar.nextButton.button.config(state="normal" if isEnabled or len(self.footerBar.descBar.boxContents.get()) > 0 else "disabled")
-            self.controlMenu.entryconfigure("Save clip", state='disabled' if not self.options["AllowUnnamedFiles"].get() else "normal")
+            currState = self.footerBar.nextButton.button["state"]
+            if (isEnabled or len(self.footerBar.descBar.boxContents.get()) > 0) and currState != "normal":
+                self.footerBar.nextButton.button.config(state="normal")
+            elif not (isEnabled or len(self.footerBar.descBar.boxContents.get()) > 0) and currState != "disabled":
+                self.footerBar.nextButton.button.config(state="disabled")
+
+            currState = self.controlMenu.entrycget("Save clip", "state")
+            if not self.options["AllowUnnamedFiles"].get() and currState != "disabled":
+                self.controlMenu.entryconfigure("Save clip", state='disabled')
+            elif self.options["AllowUnnamedFiles"].get() and currState != "normal":
+                self.controlMenu.entryconfigure("Save clip", state='normal')
         self.optionMenu.add_checkbutton(label="Allow unnamed files", variable=cbox_AllowUnnamedFiles, command=onClick_AllowUnnamedFiles)
         # change arrow key functionality
         self.optionMenu.add_separator()
@@ -319,6 +328,10 @@ class ClipScene(tk.Frame):
             if isEnabled:
                 messagebox.showinfo("Automatic Labeling", "Automatic labeling of clips requires some extra processing for each clip. This will take some time especially with clips of longer duration.")
         self.optionMenu.add_checkbutton(label="Label silent clips", variable=cbox_LabelMutedClips, command=onClick_LabelSilentClips)
+        # Enable fullscreen naming
+        #cbox_EnableFullscreenNaming = tk.BooleanVar()
+        #self.options["EnableFullscreenNaming"] = cbox_EnableFullscreenNaming
+        #self.optionMenu.add_checkbutton(label="Enable fullscreen naming", variable=cbox_EnableFullscreenNaming)
         
 
 
