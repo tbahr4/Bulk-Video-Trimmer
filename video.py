@@ -480,6 +480,8 @@ class VideoPlayer(tk.Frame):
                 self.discordPresence.updateStatus(details="Clipping videos", state=f"{min(self.clipScene.currentVideo, self.clipScene.totalVideos)} of {self.clipScene.totalVideos}")   
             self.discordPresence.sendUpdate()     
 
+        # update options
+        self.clipScene.updateOptions()
            
                    
 

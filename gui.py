@@ -78,7 +78,7 @@ class MainApp(tk.Frame):
             
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__":
-                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test.mp4',r'C:\Users\tbahr4\Desktop\Programming Projects\Video Trimmer\test.mp4','test.mp4','test2.mp4','test3.mp4','nosound.mp4','nosound2.mp4')
+                self.videoPaths = ('multitrack.mp4','test2.mp4','test3.mp4','nosound.mp4','nosound2.mp4')
                 self.destFolder = "TestOutput"
 
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder, discordPresence=self.discordPresence, mainApp=self)
@@ -274,7 +274,8 @@ class ClipScene(tk.Frame):
         def onClick_AltTrack():
             isEnabled = cbox_AltTrack.get()
             if self.video.player.audio_get_track_count() >= 3:
-                    self.video.player.audio_set_track(2 if isEnabled else 1) 
+                self.video.player.audio_set_track(2 if isEnabled else 1) 
+                
         self.optionMenu.add_checkbutton(label="Alternate audio track", variable=cbox_AltTrack, command=onClick_AltTrack)
         # autoplay
         cbox_Autoplay = tk.BooleanVar()
