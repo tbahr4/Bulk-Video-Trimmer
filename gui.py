@@ -72,6 +72,7 @@ class MainApp(tk.Frame):
                 self.scene.video.place_forget()
                 self.root.unbind("<KeyPress>")
                 self.root.unbind("<FocusIn>")
+                self.root.unbind("<FocusOut>")
             self.root.unbind('<Button-1>')
             self.root.unbind('<KeyPress>')
 
@@ -81,7 +82,7 @@ class MainApp(tk.Frame):
             
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__":
-                self.videoPaths = ('test.mp4','test2.mp4','test3.mp4')
+                self.videoPaths = ('test.mp4','test2.mp4','test3.mp4','nosound.mp4','nosound2.mp4')
                 self.destFolder = "TestOutput"
 
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder, discordPresence=self.discordPresence, mainApp=self)
@@ -91,10 +92,14 @@ class MainApp(tk.Frame):
                 self.scene.video.place_forget()
                 self.root.unbind("<KeyPress>")
                 self.root.unbind("<FocusIn>")
+                self.root.unbind("<FocusOut>")
             self.root.unbind('<Button-1>')
             self.root.unbind('<KeyPress>')
 
-            self.scene = TrimScene(self, mainApp=self)
+            options = None
+            if type(self.scene) == ClipScene:
+                options = self.scene.options
+            self.scene = TrimScene(self, mainApp=self, options=options)
             self.scene.pack(fill="both", expand=True)
 
             if self.discordPresence != None:
@@ -289,6 +294,15 @@ class ClipScene(tk.Frame):
         self.seekSpeedMenu.add_radiobutton(label="5s (default)", variable=selectedSeekSpeed, value=5000)
         self.seekSpeedMenu.add_radiobutton(label="10s", variable=selectedSeekSpeed, value=10000)
         self.optionMenu.add_cascade(label="Set seek time", menu=self.seekSpeedMenu)
+        # Label silent clips
+        self.optionMenu.add_separator()
+        cbox_LabelMutedClips = tk.BooleanVar()
+        self.options["LabelSilentClips"] = cbox_LabelMutedClips
+        def onClick_LabelSilentClips():
+            isEnabled = cbox_LabelMutedClips.get()
+            if isEnabled:
+                messagebox.showinfo("Automatic Labeling", "Automatic labeling of clips requires some extra processing for each clip. This will take some time especially with clips of longer duration.")
+        self.optionMenu.add_checkbutton(label="Label silent clips", variable=cbox_LabelMutedClips, command=onClick_LabelSilentClips)
         
 
 
@@ -305,6 +319,10 @@ class ClipScene(tk.Frame):
             "onClick_AllowUnnamedFiles": {
                 "Function": onClick_AllowUnnamedFiles,
                 "AutoUpdate": True
+            },
+            "onClick_LabelSilentClips": {
+                "Function": onClick_LabelSilentClips,
+                "AutoUpdate": False
             }
         }
 
@@ -404,6 +422,7 @@ class ClipScene(tk.Frame):
         """
             Prompts the user to skip the current clip
         """
+        self.footerBar.nextButton.allowClicks = True    # force click to be registered
         self.footerBar.nextButton.onClick(skipTrim=True, nextVideo=True, prevVideo=False)
 
     def promptSkipAll(self):
@@ -750,12 +769,13 @@ class FooterBar(tk.Frame):
         self.nextButton.grid(column=1, row=0)
 
 class TrimScene(tk.Frame):
-    def __init__(self, parent, mainApp: MainApp):
+    def __init__(self, parent, mainApp: MainApp, options: list = None):
         super().__init__(parent)
         self.parent = parent
         self.mainApp = mainApp
         self.parent.parent.geometry("400x260")
         self.root = parent.parent
+        self.options = options
         font = ("Helvetica", 10)
 
         # instances
@@ -809,10 +829,14 @@ class TrimScene(tk.Frame):
         # perform trim on all videos
         for trimData in self.mainApp.trimData[self.videoCount:]:
             inputPath = trimData["inputPath"]
-            maxOrder = self.getFileOrder(self.mainApp.destFolder)
-            outputPath = f"{self.mainApp.destFolder}/({maxOrder}) {trimData['description']}.mp4"
+            maxOrder = self.getFileOrder(self.mainApp.destFolder)  
             startTime = trimData["startTime"] / 1000
             endTime = trimData["endTime"] / 1000
+            isSilent = False
+            if self.options != None:
+                if self.options["LabelSilentClips"].get():
+                    isSilent = logic.checkIsSilent(inputPath, startTime, endTime, trimScene=self)     # check if clip is silent
+            outputPath = f"{self.mainApp.destFolder}/({maxOrder}) {'(no sound) ' if isSilent else ''}{trimData['description']}.mp4"
             isFramePerfect = trimData["isFramePerfect"]
 
             # update visual data
@@ -899,7 +923,6 @@ class TrimScene(tk.Frame):
             
             if value > maxOrder: maxOrder = value
 
-        print(maxOrder+1)
         return maxOrder + 1 
         
 
