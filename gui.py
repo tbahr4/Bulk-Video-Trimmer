@@ -328,10 +328,6 @@ class ClipScene(tk.Frame):
             if isEnabled:
                 messagebox.showinfo("Automatic Labeling", "Automatic labeling of clips requires some extra processing for each clip. This will take some time especially with clips of longer duration.")
         self.optionMenu.add_checkbutton(label="Label silent clips", variable=cbox_LabelMutedClips, command=onClick_LabelSilentClips)
-        # Enable fullscreen naming
-        #cbox_EnableFullscreenNaming = tk.BooleanVar()
-        #self.options["EnableFullscreenNaming"] = cbox_EnableFullscreenNaming
-        #self.optionMenu.add_checkbutton(label="Enable fullscreen naming", variable=cbox_EnableFullscreenNaming)
         
 
 

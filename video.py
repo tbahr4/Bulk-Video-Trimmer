@@ -481,7 +481,8 @@ class VideoPlayer(tk.Frame):
             self.discordPresence.sendUpdate()     
 
         # update options
-        self.clipScene.updateOptions()
+        if self.clipScene != None:
+            self.clipScene.updateOptions()
            
                    
 
