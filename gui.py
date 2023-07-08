@@ -70,11 +70,7 @@ class MainApp(tk.Frame):
         if scene == Scene.SCENE_INITIAL:
             if type(self.scene) == ClipScene:
                 self.scene.video.place_forget()
-                self.root.unbind("<KeyPress>")
-                self.root.unbind("<FocusIn>")
-                self.root.unbind("<FocusOut>")
-            self.root.unbind('<Button-1>')
-            self.root.unbind('<KeyPress>')
+            self.unbindAll()
 
             self.root.geometry(f"{400}x{100}")
             self.scene = InitialScene(self)
@@ -90,11 +86,7 @@ class MainApp(tk.Frame):
         elif scene == Scene.SCENE_TRIM:
             if type(self.scene) == ClipScene:
                 self.scene.video.place_forget()
-                self.root.unbind("<KeyPress>")
-                self.root.unbind("<FocusIn>")
-                self.root.unbind("<FocusOut>")
-            self.root.unbind('<Button-1>')
-            self.root.unbind('<KeyPress>')
+            self.unbindAll()
 
             options = None
             if type(self.scene) == ClipScene:
@@ -105,6 +97,24 @@ class MainApp(tk.Frame):
             if self.discordPresence != None:
                 self.discordPresence.updateStatus(details="Trimming videos")
     
+    def unbindAll(self):
+        """
+            Unbinds all events
+        """
+        self.root.unbind("<KeyPress>")
+        self.root.unbind("<FocusIn>")
+        self.root.unbind("<FocusOut>")
+        self.root.unbind("<Button-1>")
+        self.root.unbind("<Button-2>")
+        self.root.unbind("<Button-3>")
+        self.root.unbind("<ButtonRelease-1>")
+        self.root.unbind("<KeyPress>")
+        self.root.unbind("<Return>")
+        self.root.unbind("<Enter>")
+        self.root.unbind("<Leave>")
+        self.root.unbind("<B1-Motion>")
+        self.root.unbind("<>")
+
     def closeApp(self):
         self.parent.destroy()
             
@@ -420,10 +430,9 @@ class ClipScene(tk.Frame):
 
     def promptSkip(self):
         """
-            Prompts the user to skip the current clip
+            Skips the current clip
         """
-        self.footerBar.nextButton.allowClicks = True    # force click to be registered
-        self.footerBar.nextButton.onClick(skipTrim=True, nextVideo=True, prevVideo=False)
+        self.footerBar.nextButton.onClick(skipTrim=True, nextVideo=True, prevVideo=False, forceProcess=True)
 
     def promptSkipAll(self):
         """
@@ -565,16 +574,16 @@ class NextButton(tk.Frame):
         self.mainApp = mainApp
         self.allowClicks = True
 
-        self.button = tk.Button(self, width=10, text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done", command=lambda: self.onClick(skipTrim=False, nextVideo=True, prevVideo=False), bg="#bbbbbb")
+        self.button = tk.Button(self, width=10, text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done", command=lambda: self.onClick(skipTrim=False, nextVideo=True, prevVideo=False, forceProcess=True), bg="#bbbbbb")
         self.button.config(state="disabled" if not self.clipScene.options["AllowUnnamedFiles"].get() else "normal")
         self.button.pack()
 
-    def onClick(self, skipTrim: bool, nextVideo: bool, prevVideo: bool):
+    def onClick(self, skipTrim: bool, nextVideo: bool, prevVideo: bool, forceProcess: bool = False):
         """
             skipTrim: Processes the click but ignores the current video for trimming
             nextVideo: Processes the click but does not move to the next video
         """
-        if not self.allowClicks: return
+        if not self.allowClicks and not forceProcess: return
         self.allowClicks = False
 
         # pause video
