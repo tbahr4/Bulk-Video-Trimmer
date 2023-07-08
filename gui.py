@@ -82,7 +82,7 @@ class MainApp(tk.Frame):
             
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__":
-                self.videoPaths = ('test.mp4','test2.mp4','test3.mp4','nosound.mp4','nosound2.mp4')
+                self.videoPaths = (r'C:/Users/tbahr4/Desktop/Programming Projects/Video Trimmer/test.mp4',r'C:\Users\tbahr4\Desktop\Programming Projects\Video Trimmer\test.mp4','test.mp4','test2.mp4','test3.mp4','nosound.mp4','nosound2.mp4')
                 self.destFolder = "TestOutput"
 
             self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder, discordPresence=self.discordPresence, mainApp=self)
@@ -375,7 +375,7 @@ class ClipScene(tk.Frame):
         # update text files
         self.tFileCount.config(text=f"{self.currentVideo} of {len(videoPaths)}")
         filename = videoPaths[self.currentVideo-1].split("/")[-1][:100]
-        self.tFilename.config(text=filename)
+        self.tFilename.config(text=os.path.basename(filename))
         # replace file count to fit
         self.root.update()
         self.tFileCount.place(x=video.WINDOW_WIDTH-5-self.tFileCount.winfo_width(), y=2)
@@ -589,10 +589,14 @@ class NextButton(tk.Frame):
         san_text = sanitize_filepath(self.clipScene.footerBar.descBar.boxContents.get())
         self.clipScene.footerBar.descBar.boxContents.set(san_text)
 
+        # if no name provided, default to previous name
+        if len(san_text) == 0: 
+            path = self.mainApp.videoPaths[self.clipScene.currentVideo-1]
+            san_text = "".join(os.path.basename(path).split(".")[:-1])
 
         # save picked times
         if not skipTrim:
-            self.mainApp.trimData.append(dict([("description", self.clipScene.footerBar.descBar.boxContents.get()), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime), ("fullVideoLength", self.clipScene.video.player.get_length()), ("isFramePerfect", self.clipScene.framePerfectButton.isSet.get() == 1), ("inputPath", self.mainApp.videoPaths[self.clipScene.currentVideo-1])]))
+            self.mainApp.trimData.append(dict([("description", san_text), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime), ("fullVideoLength", self.clipScene.video.player.get_length()), ("isFramePerfect", self.clipScene.framePerfectButton.isSet.get() == 1), ("inputPath", self.mainApp.videoPaths[self.clipScene.currentVideo-1])]))
 
         if nextVideo or prevVideo:
 
@@ -621,7 +625,7 @@ class NextButton(tk.Frame):
                 self.button.config(text="Next" if self.clipScene.currentVideo != self.clipScene.totalVideos else "Done")
                 self.clipScene.tFileCount.config(text=f"{self.clipScene.currentVideo} of {self.clipScene.totalVideos}")
                 filename = self.mainApp.videoPaths[self.clipScene.currentVideo-1].split("/")[-1][:100]
-                self.clipScene.tFilename.config(text=filename)
+                self.clipScene.tFilename.config(text=os.path.basename(filename))
                 self.clipScene.footerBar.descBar.boxContents.set("")
 
                 # reset frame perfect check
