@@ -9,8 +9,14 @@ import gui
 import discord
 
 # create discord presence
-discordPresence = discord.DiscordPresence()
-discordPresence.createPresence()
+discordPresence = None
+try:
+    discordPresence = discord.DiscordPresence()
+    discordPresence.createPresence()
+except Exception as e:
+    # discord error / not open
+    pass
+
 
 
 

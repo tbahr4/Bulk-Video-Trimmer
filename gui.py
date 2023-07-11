@@ -47,10 +47,13 @@ class MainApp(tk.Frame):
     """
     def __init__(self, parent, discordPresence = None):
         super().__init__(parent)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
         self.root = parent
         self.parent = parent
         self.discordPresence = discordPresence
         self.currentScene = Scene.SCENE_INITIAL
+        self.savedOptions = None
         
         # init scenes
         self.scene = None
@@ -66,6 +69,7 @@ class MainApp(tk.Frame):
         self.root.config(menu="") # remove menu
         if self.scene: self.scene.pack_forget()
         self.currentScene = scene
+        
 
         if scene == Scene.SCENE_INITIAL:
             # if set to initial scene, reset data
@@ -74,10 +78,12 @@ class MainApp(tk.Frame):
             self.trimData = []
 
             if type(self.scene) == ClipScene:
-                self.scene.video.place_forget()
+                pass#self.scene.video.place_forget()
             self.unbindAll()
 
-            self.root.geometry(f"{400}x{100}")
+            self.root.geometry("400x100")
+            self.root.minsize(400,100)
+            self.root.resizable(False, False)
             self.scene = InitialScene(self)
             self.scene.pack(pady=5, fill="both", expand=True)
             
@@ -86,21 +92,34 @@ class MainApp(tk.Frame):
                 self.videoPaths = ('test.mp4','test2.mp4','test3.mp4','nosound.mp4','nosound2.mp4')
                 self.destFolder = "TestOutput"
 
-            self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder, discordPresence=self.discordPresence, mainApp=self)
+            self.scene = ClipScene(self, self.root, self.videoPaths, self.destFolder, discordPresence=self.discordPresence, mainApp=self, optionStates=self.savedOptions)
+            self.root.minsize(495,387)
+            self.root.resizable(True, True)
             self.scene.pack(fill="both", expand=True)
         elif scene == Scene.SCENE_TRIM:
             if type(self.scene) == ClipScene:
-                self.scene.video.place_forget()
+                pass#self.scene.video.place_forget()
             self.unbindAll()
 
-            options = None
             if type(self.scene) == ClipScene:
-                options = self.scene.options
-            self.scene = TrimScene(self, mainApp=self, options=options)
+                self.savedOptions = self.scene.options 
+
+            self.scene = TrimScene(self, mainApp=self, options=self.savedOptions)
+            self.root.minsize(400,260)
+            self.root.resizable(True, True)
             self.scene.pack(fill="both", expand=True)
 
             if self.discordPresence != None:
                 self.discordPresence.updateStatus(details="Trimming videos")
+
+    def getSceneType(self):
+        if type(self.scene) == InitialScene:
+            return Scene.SCENE_INITIAL
+        elif type(self.scene) == ClipScene:
+            return Scene.SCENE_CLIPS
+        elif type(self.scene) == TrimScene:
+            return Scene.SCENE_TRIM
+        return None
     
     def unbindAll(self):
         """
@@ -256,8 +275,10 @@ class BeginButton(tk.Frame):
 # Clip Trimming Scene Elements
 #
 class ClipScene(tk.Frame):
-    def __init__(self, parent, root, videoPaths: list, destFolder: str, discordPresence = None, mainApp = None):
+    def __init__(self, parent, root, videoPaths: list, destFolder: str, discordPresence = None, mainApp = None, optionStates: dict = None):
         super().__init__(parent)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
         self.parent = parent
         self.root = root
         self.currentVideo = 1
@@ -271,11 +292,17 @@ class ClipScene(tk.Frame):
         
 
         # options
-        self.options = dict()
+        self.options = None
+        if optionStates != None:
+            self.options = optionStates
+        else:
+            self.options = dict()
 
         # alternate track
-        cbox_AltTrack = tk.BooleanVar()
-        self.options["AltTrack"] = cbox_AltTrack
+        cbox_AltTrack = self.options.get("AltTrack")
+        if cbox_AltTrack == None:
+            cbox_AltTrack = tk.BooleanVar()
+            self.options["AltTrack"] = cbox_AltTrack
         def onClick_AltTrack():
             isEnabled = cbox_AltTrack.get()
             if self.video.player.audio_get_track_count() >= 3:
@@ -283,19 +310,25 @@ class ClipScene(tk.Frame):
                 
         self.optionMenu.add_checkbutton(label="Alternate audio track", variable=cbox_AltTrack, command=onClick_AltTrack)
         # autoplay
-        cbox_Autoplay = tk.BooleanVar()
-        self.options["Autoplay"] = cbox_Autoplay
+        cbox_Autoplay = self.options.get("Autoplay")
+        if cbox_Autoplay == None:
+            cbox_Autoplay = tk.BooleanVar()
+            self.options["Autoplay"] = cbox_Autoplay
         def onClick_Autoplay():
             isEnabled = cbox_Autoplay.get()
             self.video.playOnOpen = isEnabled
         self.optionMenu.add_checkbutton(label="Autoplay", variable=cbox_Autoplay, command=onClick_Autoplay)
         # loop playback
-        cbox_LoopPlayback = tk.BooleanVar()
-        self.options["LoopPlayback"] = cbox_LoopPlayback
+        cbox_LoopPlayback = self.options.get("LoopPlayback")
+        if cbox_LoopPlayback == None:
+            cbox_LoopPlayback = tk.BooleanVar()
+            self.options["LoopPlayback"] = cbox_LoopPlayback
         self.optionMenu.add_checkbutton(label="Loop playback", variable=cbox_LoopPlayback)
         # Allow unnamed files
-        cbox_AllowUnnamedFiles = tk.BooleanVar()
-        self.options["AllowUnnamedFiles"] = cbox_AllowUnnamedFiles
+        cbox_AllowUnnamedFiles = self.options.get("AllowUnnamedFiles")
+        if cbox_AllowUnnamedFiles == None:
+            cbox_AllowUnnamedFiles = tk.BooleanVar()
+            self.options["AllowUnnamedFiles"] = cbox_AllowUnnamedFiles
         def onClick_AllowUnnamedFiles():
             isEnabled = cbox_AllowUnnamedFiles.get()
             currState = self.footerBar.nextButton.button["state"]
@@ -313,16 +346,20 @@ class ClipScene(tk.Frame):
         # change arrow key functionality
         self.optionMenu.add_separator()
         self.seekSpeedMenu = tk.Menu(self.optionMenu, tearoff=0)
-        selectedSeekSpeed = tk.IntVar(None, 5000)
-        self.options["SeekTime"] = selectedSeekSpeed
+        selectedSeekSpeed = self.options.get("SeekTime")
+        if selectedSeekSpeed == None:
+            selectedSeekSpeed = tk.IntVar(None, 5000)
+            self.options["SeekTime"] = selectedSeekSpeed
         self.seekSpeedMenu.add_radiobutton(label="1s", variable=selectedSeekSpeed, value=1000)
         self.seekSpeedMenu.add_radiobutton(label="5s (default)", variable=selectedSeekSpeed, value=5000)
         self.seekSpeedMenu.add_radiobutton(label="10s", variable=selectedSeekSpeed, value=10000)
         self.optionMenu.add_cascade(label="Set seek time", menu=self.seekSpeedMenu)
         # Label silent clips
         self.optionMenu.add_separator()
-        cbox_LabelMutedClips = tk.BooleanVar()
-        self.options["LabelSilentClips"] = cbox_LabelMutedClips
+        cbox_LabelMutedClips = self.options.get("LabelSilentClips")
+        if cbox_LabelMutedClips == None:
+            cbox_LabelMutedClips = tk.BooleanVar()
+            self.options["LabelSilentClips"] = cbox_LabelMutedClips
         def onClick_LabelSilentClips():
             isEnabled = cbox_LabelMutedClips.get()
             if isEnabled:
@@ -351,10 +388,8 @@ class ClipScene(tk.Frame):
             }
         }
 
-        # video and surrounding instances
-        self.background = tk.Canvas(self, background=bg, width=video.WINDOW_WIDTH, height=video.WINDOW_HEIGHT, borderwidth=0, highlightthickness=0)
-        self.tFilename = tk.Label(self, text="None")
-        self.tFileCount = tk.Label(self, text="0 of 0")
+
+
         self.actionBar = ActionBar(self)
         self.footerBar = FooterBar(self, clipScene=self, mainApp=self.parent)
         self.framePerfectButton = FramePerfectButton(self)
@@ -371,7 +406,12 @@ class ClipScene(tk.Frame):
         self.parent.root.config(menu=self.menuBar)
 
         # create video player
-        self.video = video.VideoPlayer(self.root, screenWidth=video.WINDOW_WIDTH, screenHeight=int(1080/2), playOnOpen=False, backgroundHeight=40, restrictLeftButton=self.actionBar.setLeft, restrictRightButton=self.actionBar.setRight, unrestrictLeftButton=self.actionBar.resetLeft, unrestrictRightButton=self.actionBar.resetRight, clipScene=self, menuBar=self.menuBar, discordPresence=self.discordPresence, mainApp=mainApp)
+        self.video = video.VideoPlayer(self, root=root, playOnOpen=self.options["Autoplay"].get(), restrictLeftButton=self.actionBar.setLeft, restrictRightButton=self.actionBar.setRight, unrestrictLeftButton=self.actionBar.resetLeft, unrestrictRightButton=self.actionBar.resetRight, clipScene=self, menuBar=self.menuBar, discordPresence=self.discordPresence, mainApp=mainApp)
+
+
+        
+
+
 
         # add listeners
         self.root.bind('<Button-1>', self.onClick)
@@ -380,17 +420,30 @@ class ClipScene(tk.Frame):
         # build     
         self.root.geometry(str(video.WINDOW_WIDTH) + "x" + str(video.WINDOW_HEIGHT))
 
-        self.background.pack()
+
+        self.video.grid(column=0, row=1, sticky='nesw', columnspan=3)
+
+        # top bar
+        self.topBar = tk.Frame(self, height=25)
+        self.topBar.grid(column=0, row=0, sticky='nesw')
+        self.tFilename = tk.Label(self, text="None")
+        self.tFileCount = tk.Label(self, text="0 of 0")
+        
         self.tFilename.place(x=4, y=2)
-        self.tFileCount.place(x=video.WINDOW_WIDTH-40, y=2)
-        self.video.place(x=0,y=25, width=self.video.screenWidth, height=self.video.screenHeight + 40)
+        self.root.update()
+
+        
 
         buttonSize = 35
         actionBarWidth = buttonSize * 2 + 200
-        self.actionBar.place(x=0, y=600, width=actionBarWidth, height=buttonSize + 20)
+        #self.actionBar.place(x=0, y=600, width=actionBarWidth, height=buttonSize + 20)
+        self.actionBar.grid(column=0, row=2, sticky='nesw')
 
-        self.framePerfectButton.place(x=actionBarWidth, y=614, width=200, height=40)
-        self.footerBar.place(x=video.WINDOW_WIDTH-482, y=614, width=video.WINDOW_WIDTH, height=40)
+        #self.framePerfectButton.place(x=actionBarWidth, y=614, width=200, height=40)
+        self.framePerfectButton.grid(column=1, row=2, sticky='nesw')
+
+        #self.footerBar.place(x=video_test.WINDOW_WIDTH-482, y=614, width=video_test.WINDOW_WIDTH, height=40)
+        self.footerBar.grid(column=2, row=2, sticky="nesw")
 
 
         # setup video
@@ -403,10 +456,53 @@ class ClipScene(tk.Frame):
         self.tFilename.config(text=os.path.basename(filename))
         # replace file count to fit
         self.root.update()
-        self.tFileCount.place(x=video.WINDOW_WIDTH-5-self.tFileCount.winfo_width(), y=2)
+        #self.tFileCount.place(x=video_test.WINDOW_WIDTH-5-self.tFileCount.winfo_width(), y=2)
+        self.tFileCount.place(x=self.video.winfo_width()-5-self.tFileCount.winfo_width(), y=2)
         # update times to default
         self.leftTime = 0
         self.rightTime = self.video.player.get_length()
+
+        # bindings
+        self.bind("<Configure>", self.onResize)
+
+    def onResize(self, event):
+        """
+            Called whenever the window is resized/configured
+        """
+        if self.video.bFullscreen.isFullscreen:
+            return      # do not update
+
+        defaultSize = video.WINDOW_WIDTH, video.WINDOW_HEIGHT
+        newSize = (self.root.winfo_width(), self.root.winfo_height())
+        scale = newSize[0]/defaultSize[0], newSize[1]/defaultSize[1]
+        FRAME_PERFECT_THRESHOLD = 908
+        ACTION_BAR_THRESHOLD = 715
+
+        self.root.update()
+        self.tFileCount.place(x=self.video.winfo_width()-5-self.tFileCount.winfo_width(), y=2)
+
+        if newSize[0] < FRAME_PERFECT_THRESHOLD:
+            self.framePerfectButton.place_forget()
+            self.framePerfectButton.grid_forget()
+        else:
+            PADDING_THRESHOLD = 985
+            difference = newSize[0] - PADDING_THRESHOLD
+
+            if difference < 0:
+                self.framePerfectButton.button.pack(padx=0)
+                self.framePerfectButton.place(x=223, y=self.video.winfo_y() + self.video.winfo_height())
+                self.root.update()
+            else:
+                self.framePerfectButton.grid(column=1, row=2, sticky='nesw')
+                self.framePerfectButton.button.pack(padx=(0,74 + min(0, difference)))
+
+
+
+
+        if newSize[0] < ACTION_BAR_THRESHOLD:
+            self.actionBar.grid_forget()
+        else:
+            self.actionBar.grid(column=0, row=2, sticky='nesw')
 
     def updateOptions(self):
         """
@@ -468,6 +564,7 @@ class ClipScene(tk.Frame):
         # special case: remove cursor from description box
         self.footerBar.descBar.isBoxFocused = False
         self.root.focus()
+
             
 
 class FramePerfectButton(tk.Frame):
@@ -475,11 +572,11 @@ class FramePerfectButton(tk.Frame):
         Toggleable button that specifies that the given clip should be frame perfect
     """
     def __init__(self, parent):
-        super().__init__(parent)
+        super().__init__(parent, bg=bg)
         self.isSet = tk.IntVar()
 
-        self.button = tk.Checkbutton(self, text="Enable frame perfect trim (slow)", variable=self.isSet)
-        self.button.pack()
+        self.button = tk.Checkbutton(self, text="Enable frame perfect trim (slow)", variable=self.isSet, pady=10)
+        self.button.pack(padx=(0,74))
 
 class ResetButton(tk.Frame):
     """
@@ -576,8 +673,8 @@ class ActionBar(tk.Frame):
         self.setLeft = SetButton(self, isLeft=True, buttonSize=buttonSize, clipScene=self.clipScene)
         self.setRight = SetButton(self, isLeft=False, buttonSize=buttonSize, clipScene=self.clipScene)
 
-        self.resetLeft.grid(column=0, row=0, pady=10)
-        self.setLeft.grid(column=1, row=0)
+        self.resetLeft.grid(column=0, row=0)
+        self.setLeft.grid(column=1, row=0, pady=9)
         self.setRight.grid(column=2, row=0)
         self.resetRight.grid(column=3, row=0)
 
@@ -657,7 +754,8 @@ class NextButton(tk.Frame):
 
                 # replace file count to fit
                 self.mainApp.root.update()
-                self.clipScene.tFileCount.place(x=video.WINDOW_WIDTH-5-self.clipScene.tFileCount.winfo_width(), y=2)
+                #self.clipScene.tFileCount.place(x=video_test.WINDOW_WIDTH-5-self.clipScene.tFileCount.winfo_width(), y=2)
+                self.clipScene.tFileCount.place(x=self.clipScene.video.winfo_width()-5-self.clipScene.tFileCount.winfo_width(), y=2)
 
                 # update video
                 self.clipScene.video.openVideo(self.mainApp.videoPaths[self.clipScene.currentVideo-1])
@@ -794,7 +892,7 @@ class FooterBar(tk.Frame):
         self.descBar = DescriptionBar(self, nextButton=self.nextButton)
 
         self.descBar.grid(column=0, row=0)
-        self.nextButton.grid(column=1, row=0)
+        self.nextButton.grid(column=1, row=0, padx=8, pady=9)
 
 class TrimScene(tk.Frame):
     def __init__(self, parent, mainApp: MainApp, options: list = None):
@@ -840,6 +938,16 @@ class TrimScene(tk.Frame):
         self.videoCount = 0
         self.a = False
 
+        # add event bindings
+        self.bind("<Configure>", self.onResize)
+
+    def onResize(self, event):
+        """
+            Called whenever the window is resized/configured
+        """
+        self.root.update()
+        self.progressBar.bar.config(length=self.root.winfo_width())         
+
     def skipButtonOnClick(self):
         self.skipButton.grid_forget()   # hide skip button
 
@@ -870,6 +978,7 @@ class TrimScene(tk.Frame):
             isSilent = False
             if self.options != None:
                 if self.options["LabelSilentClips"].get():
+                    self.log(f"Checking for silence in \"{trimData['description']}\"")
                     isSilent = logic.checkIsSilent(inputPath, startTime, endTime, trimScene=self)     # check if clip is silent
             outputPath = f"{self.mainApp.destFolder}/({maxOrder}) {'(no sound) ' if isSilent else ''}{trimData['description']}.mp4"
             isFramePerfect = trimData["isFramePerfect"]
@@ -1017,11 +1126,14 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.title("Bulk Video Trimmer")
     root.geometry("400x100")
-    root.resizable(width=False, height=False)
     root.iconbitmap(getResourcePath("images/logo.ico"))
+    root.grid_rowconfigure(0, weight=1)
+    root.grid_columnconfigure(0, weight=1)
 
     app = MainApp(root)
-    app.pack(fill="both", expand=True)
+    app.grid(column=0, row=0, sticky="nesw")
+    
+
     app.setScene(Scene.SCENE_CLIPS)
 
     root.mainloop()

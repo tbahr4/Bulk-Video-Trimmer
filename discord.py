@@ -34,6 +34,7 @@ class DiscordPresence():
             large_image="logo",
             start=self.start
         )
+
         self.lastUpdate = time.time()
         self.displayedDetails = self.details
         self.displayedState = self.state

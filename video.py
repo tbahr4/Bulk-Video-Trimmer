@@ -26,23 +26,21 @@ WINDOW_WIDTH = 1024
 
 
 class VideoPlayer(tk.Frame):
-    def __init__(self, parent, screenWidth: int, screenHeight: int, playOnOpen: bool, backgroundHeight: int, restrictLeftButton = None, restrictRightButton = None, unrestrictLeftButton = None, unrestrictRightButton = None, clipScene = None, menuBar = None, discordPresence = None, mainApp = None):
+    def __init__(self, parent, root, playOnOpen: bool, restrictLeftButton = None, restrictRightButton = None, unrestrictLeftButton = None, unrestrictRightButton = None, clipScene = None, menuBar = None, discordPresence = None, mainApp = None):
         """
             Params:
-            screenWidth: the width of the video screen
-            screenHeight: the height of the video screen
             playOnOpen: autoplay automatically upon opening a video using openVideo()
         """
-        super().__init__(parent)
-        root = parent
+        super().__init__(parent, bg="#000000")
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.root = root
         self.parent = parent
         self.lastVolumeChange = 0  
         self.isVolumeBarVisible = False
         self.lastEndStateTime = 0
         self.timeToUpdateEndState = 1
         self.duration = 0
-        self.fullscreenScaleX = root.winfo_screenwidth() / WINDOW_WIDTH
-        self.fullscreenScaleY = root.winfo_screenheight() / WINDOW_HEIGHT
         self.isVideoOpened = False
         self.enableRestrictedPlayback = False
         self.restrictLeft = None
@@ -59,8 +57,6 @@ class VideoPlayer(tk.Frame):
 
         # properties
         self.playOnOpen = playOnOpen
-        self.screenWidth = screenWidth
-        self.screenHeight = screenHeight
         self.volume = 50
 
         # init vlc instance
@@ -71,42 +67,59 @@ class VideoPlayer(tk.Frame):
         
         # init properties
         self.player.audio_set_volume(self.volume)
-        # progress bar
-        self.progressBarHeight = 5
-        self.progressBar = ProgressBar(self, self.player, width=screenWidth, height=self.progressBarHeight, bg='#383838', fg='#4287f5')
-        # buttons
-        padX = 5
-        self.volumeBar = VolumeBar(self, player=self.player, defaultVolume=50, width=19, height=50)
-        self.buttonSize = 25
-        self.actionBar = ActionBar(self, self.player, buttonSize=self.buttonSize, progressBar=self.progressBar, volumeBar=self.volumeBar, progressBarHeight=self.progressBarHeight, padX=padX)
-        self.bPause = self.actionBar.bPause
-        # background
-        self.background = tk.Canvas(self, width=WINDOW_WIDTH, height=screenHeight+backgroundHeight, bg='black', borderwidth=0, highlightthickness=0)
-        # init canvas
-        width, height = self.player.video_get_size(0)
-        self.canvas = tk.Canvas(self, width=screenWidth, height=self.screenHeight, bg='black', borderwidth=0, highlightthickness=0)
-        # fullscreen button, initialized with a list of all widgets to be resized
-        self.bFullscreen = FullscreenButton(self, root=root, size=self.buttonSize)
+        
+        
 
         # video interaction (clicks)
         self.lastVideoClick = 0
         self.videoDoubleClickDetected = False
 
         
-            
+        # init canvas
+        self.canvas = tk.Canvas(self, bg='black', borderwidth=0, highlightthickness=0)
         
         
 
         # display elements
-        self.background.place(x=0, y=0)
-        self.canvas.place(x=0,y=0)
-        self.progressBar.place(x=0, y=screenHeight)
-        self.actionBar.place(x=5, y=screenHeight+(self.progressBarHeight*2))
+
+
+        self.canvas.grid(column=0, row=0, sticky='nswe', columnspan=2)
+    
+
+        # progress bar
+        self.progressBarHeight = 5
+        root.update()
+        self.progressBar = ProgressBar(self, self.player, width=self.canvas.winfo_width(), height=self.progressBarHeight, bg='#383838', fg='#4287f5')
+
+        # progress bar spacer (since place is used for progress bar)
+        self.progressBarSpacer = tk.Frame(self, height=self.progressBarHeight, bg="#000000")
+        self.progressBarSpacer.grid(column=0, row=1, sticky='nswe', columnspan=2)   
+
+        self.progressBar.place(x=0, y=self.canvas.winfo_height())      
+
+
+
+        # buttons
+        padX = 5
+        self.volumeBar = VolumeBar(self, player=self.player, defaultVolume=50, width=19, height=50)
+        self.buttonSize = 25
+        self.actionBar = ActionBar(self, self.player, buttonSize=self.buttonSize, progressBar=self.progressBar, volumeBar=self.volumeBar, progressBarHeight=self.progressBarHeight, padX=padX)
+        self.bPause = self.actionBar.bPause
+        
+        
+        # fullscreen button, initialized with a list of all widgets to be resized
+        self.bFullscreen = FullscreenButton(self, root=root, size=self.buttonSize)
+
+
+
+
+
+
+        self.actionBar.grid(column=0, row=2, sticky="nesw")
+
         root.update()  # update to get positions of button widgets 
-        self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + 8, y=screenHeight - 55, width=self.volumeBar.width, height=self.volumeBar.height)
-        self.bFullscreen.place(x=WINDOW_WIDTH-5-self.buttonSize, y=screenHeight+(self.progressBarHeight*2))
-        self.actionBar.lift()
-        self.bFullscreen.lift()
+        self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + (self.actionBar.bVolume.winfo_width()/2) - (self.volumeBar.width/2), y=self.root.winfo_height() - self.actionBar.winfo_height() - self.progressBarHeight - 5 - self.volumeBar.height, width=self.volumeBar.width, height=self.volumeBar.height)
+        self.bFullscreen.grid(column=1, row=2, sticky="nesw")
         self.progressBar.lift()
         self.volumeBar.lift()
         
@@ -118,6 +131,22 @@ class VideoPlayer(tk.Frame):
         root.bind("<FocusIn>", self.onWindowFocus)
         root.bind("<Button-1>", self.onClick)
         root.bind("<FocusOut>", self.onWindowUnfocus)
+        self.bind("<Configure>", self.onResize)
+
+    def onResize(self, event):
+        """
+            Called whenever the window is resized/configured
+        """
+        #defaultSize = WINDOW_WIDTH, WINDOW_HEIGHT
+        #newSize = (self.root.winfo_width(), self.root.winfo_height())
+        #scale = newSize[0]/defaultSize[0], newSize[1]/defaultSize[1]
+        self.root.update()
+
+        # progress bar
+        
+        self.progressBar.width = self.canvas.winfo_width()
+        self.progressBar.canvas.config(width=self.progressBar.width)
+        self.progressBar.place(x=0, y=self.canvas.winfo_height() - (self.progressBarHeight if self.bFullscreen.isFullscreen else 0))      
 
     def onClick(self, event):
         """
@@ -164,22 +193,24 @@ class VideoPlayer(tk.Frame):
         """
             Used to avoid 0 size window on Win+D keypress
         """
-        self.parent.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
+        #self.parent.geometry(f"{self.root.winfo_width()}x{self.root.winfo_height()}")
         if self.parent.focus_displayof() != None:
             self.isWindowFocused = True
 
     def onWindowUnfocus(self, event):
-        self.parent.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
+        #self.parent.geometry(f"{self.root.winfo_width()}x{self.root.winfo_height()}")
         if self.parent.focus_displayof() == None:
             self.isWindowFocused = False
 
     def onHover_ProgressBar(self, event):
-        self.progressBar.place(x=0, y=(self.screenHeight if not self.bFullscreen.isFullscreen else self.parent.winfo_screenheight()-self.progressBarHeight) - self.progressBar.height)
+        self.progressBar.place(x=0, y=(self.canvas.winfo_height() if not self.bFullscreen.isFullscreen else self.canvas.winfo_height()-self.progressBarHeight) - self.progressBar.height)
+        
     
     def onLeave_ProgressBar(self, event):
+        self.root.update()
         if not self.progressBar.isClicking and not self.progressBar.isHovering:
-            self.progressBar.place(x=0, y=self.screenHeight if not self.bFullscreen.isFullscreen else self.parent.winfo_screenheight()-self.progressBarHeight)
-
+            self.progressBar.place(x=0, y=self.canvas.winfo_height() if not self.bFullscreen.isFullscreen else self.canvas.winfo_height()-self.progressBarHeight)
+            
     def _setPlayerPosition(self, percent):
         """
             Provided a percentage of 0-1, mimics player.set_position
@@ -410,8 +441,11 @@ class VideoPlayer(tk.Frame):
         # pause/loop if at end of video
         framesToEnd = duration - self.player.get_time()
         if self.player.get_state() == vlc.State.Playing and framesToEnd < 250:
-            if self.clipScene.options["LoopPlayback"].get():
-                self._setPlayerPosition(0)
+            if self.clipScene != None:
+                if self.clipScene.options["LoopPlayback"].get():
+                    self._setPlayerPosition(0)
+                else:
+                    self.player.pause()
             else:
                 self.player.pause()
 
@@ -441,10 +475,11 @@ class VideoPlayer(tk.Frame):
 
         if (timeSinceLastVolHover < 1 or timeSinceLastVolChange < 1) and not self.bFullscreen.isFullscreen:
             self.isVolumeBarVisible = True
-            self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + 8, y=(self.screenHeight - 55) * (self.fullscreenScaleY if self.bFullscreen.isFullscreen else 1) + (22 if self.bFullscreen.isFullscreen else 0), width=self.volumeBar.width, height=self.volumeBar.height)
+            self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + (self.actionBar.bVolume.winfo_width()/2) - (self.volumeBar.width/2), y=self.root.winfo_height() - self.actionBar.winfo_height() - self.progressBarHeight - 5 - self.volumeBar.height, width=self.volumeBar.width, height=self.volumeBar.height)
         else:   # hide
             self.isVolumeBarVisible = False
-            self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + 8, y=(self.screenHeight - 55) * (self.fullscreenScaleY if self.bFullscreen.isFullscreen else 1) + (22 if self.bFullscreen.isFullscreen else 0), width=0, height=0)
+            self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + (self.actionBar.bVolume.winfo_width()/2) - (self.volumeBar.width/2), y=self.root.winfo_height() - self.actionBar.winfo_height() - self.progressBarHeight - 5 - self.volumeBar.height, width=0, height=0)
+        
 
         # update playback timer
         if self.isVideoOpened and self.player.get_state() != vlc.State.Stopped:
@@ -485,9 +520,11 @@ class VideoPlayer(tk.Frame):
             self.clipScene.updateOptions()
            
                    
-
         # Schedule the next update
-        self.after(10, self._update)
+        if self.mainApp == None: 
+            self.after(10, self._update)
+        elif str(self.mainApp.getSceneType()) == str(gui.Scene.SCENE_CLIPS):
+            self.after(10, self._update)
 
     def restrictPlayback(self, time1: int, time2: int):
         """
@@ -538,7 +575,7 @@ class ActionBar(tk.Frame):
         self.playbackTimer = PlaybackTimer(self, player=self.player)
 
         # display
-        self.bPause.grid(column=0, row=0, padx=padX)
+        self.bPause.grid(column=0, row=0, padx=padX, pady=5)
         self.bSkipBackward.grid(column=1, row=0, padx=padX)
         self.bSkipForward.grid(column=2, row=0, padx=padX)
         self.bVolume.grid(column=3, row=0, padx=padX)
@@ -597,7 +634,7 @@ class FullscreenButton(tk.Frame):
         A button for setting and exiting window fullscreen
     """
     def __init__(self, parent, root, size: int):
-        super().__init__(parent)
+        super().__init__(parent, background="#000000")
         self.root = root
         self.parent = parent
         self.isFullscreen = False
@@ -610,7 +647,7 @@ class FullscreenButton(tk.Frame):
         self.image = ImageTk.PhotoImage(image)
         self.button = tk.Button(self, width=size, command=self.toggleFullscreen, image=self.image, borderwidth=0, highlightthickness=0, bg="black", activebackground="black")
 
-        self.button.pack()
+        self.button.pack(padx=5, pady=5)
 
     def toggleFullscreen(self, forceToggle: bool = False):
         if not self.parent.isVideoOpened: return
@@ -618,62 +655,71 @@ class FullscreenButton(tk.Frame):
         self.lastFullscreenToggle = time.time()
         self.isFullscreen = not self.isFullscreen
 
-        # get scale value
-        scaleX = self.parent.fullscreenScaleX
-        scaleY = self.parent.fullscreenScaleY
-
-        self.root.attributes("-fullscreen", self.isFullscreen)
+        winX, winY = self.root.winfo_width(), self.root.winfo_height()
         video = self.parent
-        widgetList = [video.actionBar, video.bFullscreen, video.volumeBar]
+        video.canvas.grid_forget()
+        self.root.attributes("-fullscreen", self.isFullscreen)
+
         if self.isFullscreen:
-            # video
-            self.widgetData[video] = (video.winfo_x(), video.winfo_y())
-            video.place(x=0, y=0, width=video.parent.winfo_screenwidth(), height=video.parent.winfo_screenheight())
-            video.canvas.config(width=video.parent.winfo_screenwidth(), height=video.parent.winfo_screenheight())
+            # save widget data
+            self.widgetData["WindowSize"] = winX, winY
 
-            # hide widgets
-            for widget in widgetList:
-                x = widget.winfo_x()
-                y = widget.winfo_y()
-                width = widget.winfo_width()
-                height = widget.winfo_height()
-                self.widgetData[widget] = (x,y,width,height)
-                widget.place_forget()
+            video.actionBar.grid_forget()
+            video.bFullscreen.grid_forget()
+            video.progressBarSpacer.grid_forget()
+            video.volumeBar.place_forget()
 
-            # adjust widgets
-
-            # progressbar
-            self.widgetData[video.progressBar] = (video.progressBar.width, video.progressBar.canvas.winfo_width())
-            video.progressBar.width = video.parent.winfo_screenwidth()
-            video.progressBar.place(x=0, y=video.parent.winfo_screenheight() - video.progressBarHeight)
-            video.progressBar.canvas.config(width=video.parent.winfo_screenwidth())
+            # make canvas visible again (avoids tearing)
+            video.canvas.grid(column=0, row=0, sticky='nswe', columnspan=2)
+            self.root.update()
+            video.progressBar.place(x=0, y=video.canvas.winfo_height() - video.progressBarHeight)    
+            video.progressBar.lift()  
 
             # menubar
             self.root.config(menu=tk.Menu(self.root)) # remove menu
-            
-            
+
+            # clipscene widgets
+            clipScene = video.clipScene
+            clipScene.topBar.grid_forget()
+            clipScene.actionBar.grid_forget()
+            clipScene.framePerfectButton.grid_forget()
+            clipScene.footerBar.grid_forget()
+            clipScene.tFilename.place_forget()
+            clipScene.tFileCount.place_forget()
+
 
         else:
-            # video
-            data = self.widgetData[video]
-            video.canvas.config(width=video.screenWidth, height=video.screenHeight)
-            video.place(x=data[0], y=data[1], width=video.screenWidth, height=video.screenHeight + 40)
-
-            # unhide widgets
-            for widget in widgetList:
-                data = self.widgetData[widget]
-                widget.place(x=data[0], y=data[1], width=data[2], height=data[3])
-
-            # adjust widgets
-
-            # progressbar
-            data = self.widgetData[video.progressBar]
-            video.progressBar.width = data[0]
-            video.progressBar.place(x=0, y=video.screenHeight)
-            video.progressBar.canvas.config(width=data[1])
+            video.actionBar.grid(column=0, row=2, sticky="nesw")
+            video.bFullscreen.grid(column=1, row=2, sticky="nesw")
+            video.progressBarSpacer.grid(column=0, row=1, sticky='nswe', columnspan=2)   
 
             # menubar
             self.root.config(menu=video.menuBar)
+            self.root.update()
+
+            # update widget data
+            winX, winY = self.widgetData["WindowSize"]
+            self.root.geometry(f"{winX}x{winY}")
+
+            # make canvas visible again (avoids tearing)
+            video.canvas.grid(column=0, row=0, sticky='nswe', columnspan=2)
+
+            # clipscene widgets
+            clipScene = video.clipScene
+            clipScene.topBar.grid(column=0, row=0, sticky='nesw')
+            clipScene.actionBar.grid(column=0, row=2, sticky='nesw')
+            clipScene.framePerfectButton.grid(column=1, row=2, sticky='nesw')
+            clipScene.footerBar.grid(column=2, row=2, sticky="nesw")
+            clipScene.tFilename.place(x=4, y=2)
+            clipScene.tFileCount.place(x=video.winfo_width()-5-clipScene.tFileCount.winfo_width(), y=2)
+            clipScene.onResize(event=None)
+
+
+        
+
+            
+
+            
             
         
         
@@ -951,7 +997,7 @@ class SkipButton(tk.Frame):
 
 class ProgressBar(tk.Frame):
     def __init__(self, parent, player, width: int, height: int, bg: str, fg: str):
-        super().__init__(parent)  
+        super().__init__(parent, bg="#000000")  
         self.parent = parent
         self.width = width
         self.height = height
@@ -1096,15 +1142,17 @@ class ProgressBar(tk.Frame):
         if self.parent.enableRestrictedPlayback:
             self.canvas.coords(self.restrictBar, int(leftPercent * self.width), 0, int(rightPercent * self.width), self.height * 2)
 
+
+
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("Bulk Video Trimmer")
     root.geometry(str(WINDOW_WIDTH) + "x" + str(WINDOW_HEIGHT))
-    root.resizable(width=False, height=False)
 
-    video = VideoPlayer(root, screenWidth=WINDOW_WIDTH, screenHeight=int(root.winfo_screenheight()/2), playOnOpen=False, backgroundHeight=40)
-    video.place(x=0,y=0, width=root.winfo_screenwidth(), height=root.winfo_screenheight())
-
+    video = VideoPlayer(root, root=root, playOnOpen=False)
+    video.grid(column=0, row=0, sticky='nsew')
+    root.grid_rowconfigure(0, weight=1)
+    root.grid_columnconfigure(0, weight=1)
     
     video.openVideo("test.mp4")
     video.scheduleUpdates()
