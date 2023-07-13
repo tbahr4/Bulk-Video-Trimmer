@@ -137,13 +137,9 @@ class VideoPlayer(tk.Frame):
         """
             Called whenever the window is resized/configured
         """
-        #defaultSize = WINDOW_WIDTH, WINDOW_HEIGHT
-        #newSize = (self.root.winfo_width(), self.root.winfo_height())
-        #scale = newSize[0]/defaultSize[0], newSize[1]/defaultSize[1]
         self.root.update()
 
         # progress bar
-        
         self.progressBar.width = self.canvas.winfo_width()
         self.progressBar.canvas.config(width=self.progressBar.width)
         self.progressBar.place(x=0, y=self.canvas.winfo_height() - (self.progressBarHeight if self.bFullscreen.isFullscreen else 0))      
@@ -518,7 +514,6 @@ class VideoPlayer(tk.Frame):
         # update options
         if self.clipScene != None:
             self.clipScene.updateOptions()
-           
                    
         # Schedule the next update
         if self.mainApp == None: 
@@ -699,7 +694,6 @@ class FullscreenButton(tk.Frame):
 
             # update widget data
             winX, winY = self.widgetData["WindowSize"]
-            self.root.geometry(f"{winX}x{winY}")
 
             # make canvas visible again (avoids tearing)
             video.canvas.grid(column=0, row=0, sticky='nswe', columnspan=2)
@@ -713,6 +707,7 @@ class FullscreenButton(tk.Frame):
             clipScene.tFilename.place(x=4, y=2)
             clipScene.tFileCount.place(x=video.winfo_width()-5-clipScene.tFileCount.winfo_width(), y=2)
             clipScene.onResize(event=None)
+
 
 
         

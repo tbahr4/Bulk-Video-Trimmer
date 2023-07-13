@@ -465,12 +465,15 @@ class ClipScene(tk.Frame):
         # bindings
         self.bind("<Configure>", self.onResize)
 
+
     def onResize(self, event):
         """
             Called whenever the window is resized/configured
         """
         if self.video.bFullscreen.isFullscreen:
             return      # do not update
+
+        self.root.update()
 
         defaultSize = video.WINDOW_WIDTH, video.WINDOW_HEIGHT
         newSize = (self.root.winfo_width(), self.root.winfo_height())
