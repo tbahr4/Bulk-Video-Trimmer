@@ -724,7 +724,7 @@ class NextButton(tk.Frame):
 
         # save picked times
         if not skipTrim:
-            self.mainApp.trimData.append(dict([("description", san_text), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime), ("fullVideoLength", self.clipScene.video.player.get_length()), ("isFramePerfect", self.clipScene.framePerfectButton.isSet.get() == 1), ("inputPath", self.mainApp.videoPaths[self.clipScene.currentVideo-1])]))
+            self.mainApp.trimData.append(dict([("videoNumber", self.clipScene.currentVideo), ("description", san_text), ("startTime", self.clipScene.leftTime), ("endTime", self.clipScene.rightTime), ("fullVideoLength", self.clipScene.video.player.get_length()), ("isFramePerfect", self.clipScene.framePerfectButton.isSet.get() == 1), ("inputPath", self.mainApp.videoPaths[self.clipScene.currentVideo-1])]))
 
         if nextVideo or prevVideo:
 
@@ -734,7 +734,19 @@ class NextButton(tk.Frame):
             # if prevVideo, remove previous clip as well
             previousData = None
             if prevVideo:
-                previousData = self.mainApp.trimData.pop()
+                # remove ALL clips from current video, and the first clip from the previous (if possible)
+                while len(self.mainApp.trimData) > 0:
+                    lastData = self.mainApp.trimData[-1]        # grab last video
+
+                    if lastData["videoNumber"] > self.clipScene.currentVideo:
+                        self.mainApp.trimData.pop()
+                    elif lastData["videoNumber"] == self.clipScene.currentVideo:
+                        previousData = self.mainApp.trimData.pop()
+                        break
+                    else:
+                        # passed video, no clip of previous video
+                        break
+                        
 
             # update previous video button
             self.clipScene.controlMenu.entryconfigure("Previous video", state='normal' if self.clipScene.currentVideo > 1 else 'disabled')
@@ -768,7 +780,7 @@ class NextButton(tk.Frame):
                 self.clipScene.video.openVideo(self.mainApp.videoPaths[self.clipScene.currentVideo-1])
 
                 # if returninto to prevVideo, load previous settings
-                if prevVideo:
+                if prevVideo and previousData is not None:
                     self.parent.descBar.boxContents.set(previousData["description"])
                     self.parent.parent.video.restrictPlayback(previousData["startTime"], previousData["endTime"])
                     self.parent.parent.framePerfectButton.isSet.set(previousData["isFramePerfect"])
