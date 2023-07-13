@@ -118,7 +118,7 @@ class VideoPlayer(tk.Frame):
         self.actionBar.grid(column=0, row=2, sticky="nesw")
 
         root.update()  # update to get positions of button widgets 
-        self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + (self.actionBar.bVolume.winfo_width()/2) - (self.volumeBar.width/2), y=self.root.winfo_height() - self.actionBar.winfo_height() - self.progressBarHeight - 5 - self.volumeBar.height, width=self.volumeBar.width, height=self.volumeBar.height)
+        self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + (self.actionBar.bVolume.winfo_width()/2) - (self.volumeBar.width/2), y=self.canvas.winfo_height() - self.volumeBar.height - 5, width=self.volumeBar.width, height=self.volumeBar.height)
         self.bFullscreen.grid(column=1, row=2, sticky="nesw")
         self.progressBar.lift()
         self.volumeBar.lift()
@@ -471,10 +471,10 @@ class VideoPlayer(tk.Frame):
 
         if (timeSinceLastVolHover < 1 or timeSinceLastVolChange < 1) and not self.bFullscreen.isFullscreen:
             self.isVolumeBarVisible = True
-            self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + (self.actionBar.bVolume.winfo_width()/2) - (self.volumeBar.width/2), y=self.root.winfo_height() - self.actionBar.winfo_height() - self.progressBarHeight - 5 - self.volumeBar.height, width=self.volumeBar.width, height=self.volumeBar.height)
+            self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + (self.actionBar.bVolume.winfo_width()/2) - (self.volumeBar.width/2), y=self.canvas.winfo_height() - self.volumeBar.height - 5, width=self.volumeBar.width, height=self.volumeBar.height)
         else:   # hide
             self.isVolumeBarVisible = False
-            self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + (self.actionBar.bVolume.winfo_width()/2) - (self.volumeBar.width/2), y=self.root.winfo_height() - self.actionBar.winfo_height() - self.progressBarHeight - 5 - self.volumeBar.height, width=0, height=0)
+            self.volumeBar.place(x=self.actionBar.bVolume.winfo_x() + (self.actionBar.bVolume.winfo_width()/2) - (self.volumeBar.width/2), y=self.canvas.winfo_height() - self.volumeBar.height - 5, width=0, height=0)
         
 
         # update playback timer
