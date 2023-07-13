@@ -533,6 +533,10 @@ class ClipScene(tk.Frame):
         """
             Bypasses video key presses on text box focus
         """
+        if event.keysym == "grave" and self.footerBar.descBar.isBoxFocused: 
+            self.video.onKeyPress(event)
+            return
+
         if not self.footerBar.descBar.isBoxFocused:
             self.video.onKeyPress(event)
 
@@ -818,9 +822,7 @@ class DescriptionBar(tk.Frame):
             Called when the enter key is detected by this widget
         """
         if self.nextButton.button["state"] == "normal":
-            self.nextButton.onClick(skipTrim=False, nextVideo=True, prevVideo=False) 
-
-            
+            self.nextButton.onClick(skipTrim=False, nextVideo=True, prevVideo=False)     
 
         # return cursor
         self.isBoxFocused = False
@@ -842,6 +844,12 @@ class DescriptionBar(tk.Frame):
         if text == "":
             self.nextButton.button.config(state="disabled" if not self.parent.clipScene.options["AllowUnnamedFiles"].get() else "normal")
             self.parent.parent.controlMenu.entryconfigure("Save clip", state='disabled' if not self.parent.clipScene.options["AllowUnnamedFiles"].get() else "normal")
+            return
+
+        # check if key should instead be handled by the key manager
+        #
+        if '`' in text:     # grave
+            self.boxContents.set(text.replace('`', ''))
             return
 
         # remove excess text

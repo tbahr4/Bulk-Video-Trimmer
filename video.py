@@ -330,8 +330,18 @@ class VideoPlayer(tk.Frame):
         elif key in ["r","R"] and event.state == 9:         # Shift-r
             self.restrictRightButton.shiftLock(5000)
         elif key == "Return":
+            if self.clipScene == None: return
             if event.widget != self.clipScene.footerBar.descBar.box:        # already handled by gui
                 self.clipScene.footerBar.descBar.onReturnKey(event=None)
+        elif key == "grave":
+            if self.clipScene == None: return
+            if self.clipScene.footerBar.descBar.isBoxFocused:
+                self.clipScene.footerBar.descBar.isBoxFocused = False
+                self.root.focus()       # unfocus description box
+            else:
+                self.clipScene.footerBar.descBar.isBoxFocused = True
+                self.clipScene.footerBar.descBar.box.focus()       # focus on description box
+        
             
 
         
