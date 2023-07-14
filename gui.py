@@ -432,17 +432,8 @@ class ClipScene(tk.Frame):
         self.tFilename.place(x=4, y=2)
         self.root.update()
 
-        
-
-        buttonSize = 35
-        actionBarWidth = buttonSize * 2 + 200
-        #self.actionBar.place(x=0, y=600, width=actionBarWidth, height=buttonSize + 20)
         self.actionBar.grid(column=0, row=2, sticky='nesw')
-
-        #self.framePerfectButton.place(x=actionBarWidth, y=614, width=200, height=40)
         self.framePerfectButton.grid(column=1, row=2, sticky='nesw')
-
-        #self.footerBar.place(x=video_test.WINDOW_WIDTH-482, y=614, width=video_test.WINDOW_WIDTH, height=40)
         self.footerBar.grid(column=2, row=2, sticky="nesw")
 
 
@@ -456,7 +447,6 @@ class ClipScene(tk.Frame):
         self.tFilename.config(text=os.path.basename(filename))
         # replace file count to fit
         self.root.update()
-        #self.tFileCount.place(x=video_test.WINDOW_WIDTH-5-self.tFileCount.winfo_width(), y=2)
         self.tFileCount.place(x=self.video.winfo_width()-5-self.tFileCount.winfo_width(), y=2)
         # update times to default
         self.leftTime = 0
@@ -773,7 +763,6 @@ class NextButton(tk.Frame):
 
                 # replace file count to fit
                 self.mainApp.root.update()
-                #self.clipScene.tFileCount.place(x=video_test.WINDOW_WIDTH-5-self.clipScene.tFileCount.winfo_width(), y=2)
                 self.clipScene.tFileCount.place(x=self.clipScene.video.winfo_width()-5-self.clipScene.tFileCount.winfo_width(), y=2)
 
                 # update video

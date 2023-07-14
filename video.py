@@ -68,23 +68,15 @@ class VideoPlayer(tk.Frame):
         # init properties
         self.player.audio_set_volume(self.volume)
         
-        
-
         # video interaction (clicks)
         self.lastVideoClick = 0
         self.videoDoubleClickDetected = False
 
-        
         # init canvas
         self.canvas = tk.Canvas(self, bg='black', borderwidth=0, highlightthickness=0)
-        
-        
 
         # display elements
-
-
-        self.canvas.grid(column=0, row=0, sticky='nswe', columnspan=2)
-    
+        self.canvas.grid(column=0, row=0, sticky='nswe', columnspan=2)  
 
         # progress bar
         self.progressBarHeight = 5
@@ -97,8 +89,6 @@ class VideoPlayer(tk.Frame):
 
         self.progressBar.place(x=0, y=self.canvas.winfo_height())      
 
-
-
         # buttons
         padX = 5
         self.volumeBar = VolumeBar(self, player=self.player, defaultVolume=50, width=19, height=50)
@@ -109,11 +99,6 @@ class VideoPlayer(tk.Frame):
         
         # fullscreen button, initialized with a list of all widgets to be resized
         self.bFullscreen = FullscreenButton(self, root=root, size=self.buttonSize)
-
-
-
-
-
 
         self.actionBar.grid(column=0, row=2, sticky="nesw")
 
@@ -177,7 +162,6 @@ class VideoPlayer(tk.Frame):
                 self.videoDoubleClickDetected = True      # if this is set to true, then don't allow pause to toggle
                 self.bFullscreen.toggleFullscreen()                             
             
-
             self.lastVideoClick = time.time()
 
         # exec after focus catches up
@@ -189,12 +173,10 @@ class VideoPlayer(tk.Frame):
         """
             Used to avoid 0 size window on Win+D keypress
         """
-        #self.parent.geometry(f"{self.root.winfo_width()}x{self.root.winfo_height()}")
         if self.parent.focus_displayof() != None:
             self.isWindowFocused = True
 
     def onWindowUnfocus(self, event):
-        #self.parent.geometry(f"{self.root.winfo_width()}x{self.root.winfo_height()}")
         if self.parent.focus_displayof() == None:
             self.isWindowFocused = False
 
@@ -342,10 +324,7 @@ class VideoPlayer(tk.Frame):
                 self.clipScene.footerBar.descBar.isBoxFocused = True
                 self.clipScene.footerBar.descBar.box.focus()       # focus on description box
         
-            
 
-        
-    
     def seek(self, time):
         """
             Seeks the video forward by the given time in milliseconds. 
@@ -418,7 +397,6 @@ class VideoPlayer(tk.Frame):
         # update options
         if self.clipScene != None:
             self.clipScene.updateOptions()
-
 
 
     def play(self):
