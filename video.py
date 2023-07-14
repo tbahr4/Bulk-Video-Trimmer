@@ -514,6 +514,9 @@ class VideoPlayer(tk.Frame):
             Restricts playback to fall between the two time values
         """
         if time1 < 0 or time2 < 0 or time1 > self.player.get_length() or time2 > self.player.get_length() or time1 > time2: return
+        if self.clipScene is not None:
+            self.clipScene.leftTime = time1
+            self.clipScene.rightTime = time2
         self.restrictLeft = time1
         self.restrictRight = time2
         self.enableRestrictedPlayback = True
