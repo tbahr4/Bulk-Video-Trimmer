@@ -24,7 +24,7 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
 
     if isFramePerfect:
         # Get the number of CPU cores
-        threads = multiprocessing.cpu_count()       # logical processers, not physical cores
+        threads = multiprocessing.cpu_count()       # logical processors, not physical cores
 
         # delete unprocessed file if needed
         if os.path.exists(outputPath):
@@ -172,4 +172,50 @@ def trimVideo(inputPath: str, outputPath: str, startTime: float, endTime: float,
         cmdThread.start()
 
         while cmdThread.is_alive():
+            if trimScene != None:
+                trimScene.root.update()
+
+
+
+def checkIsSilent(inputPath: str, startTime: float, endTime: float, trimScene = None):
+    """
+        Returns true if the video has no audio (only checks the first 5 seconds)
+    """
+    command = ['ffmpeg', '-i', inputPath, '-map', '0:a:1?', '-af', 'astats', '-f', 'null', '-ss', str(startTime-1), '-to', str(endTime+1), '-threads', '10', '-']
+
+    # exec on separate thread
+    def execCommand(event):
+        result = subprocess.run(command, capture_output=True, text=True)
+        event.returnValue = result.stdout, result.stderr
+
+    # check multiple positions for silence to save time
+    event = threading.Event()
+    cmdThread = threading.Thread(target=execCommand, args=(event,))
+    cmdThread.start()
+
+    while cmdThread.is_alive():
+        if trimScene != None:
             trimScene.root.update()
+
+    cmdThread.join()
+    result = event.returnValue
+
+
+    # process results
+    noSound = []
+    data = result[0 if len(result[0]) > 0 else 1].split('\n')
+    for line in data:
+        if line[37::].startswith("RMS level dB"): 
+            if len(line) < 50: return False
+            else: return line[51::] == "-inf"
+
+    return False
+
+
+
+#
+# Main
+#
+if __name__ == "__main__":
+    for file in ['test.mp4','test2.mp4','test3.mp4','test-2hr.mp4','nosound.mp4','multitrack.mp4','nosound2.mp4']:
+        print(checkIsSilent(file, 0, 5))

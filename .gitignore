@@ -10,3 +10,4 @@ gui-test.py
 /dist
 *.spec
 BVTSetup.exe
+test*.*

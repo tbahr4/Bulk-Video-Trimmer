@@ -6,6 +6,19 @@
 
 import tkinter as tk
 import gui
+import discord
+
+# create discord presence
+discordPresence = None
+try:
+    discordPresence = discord.DiscordPresence()
+    discordPresence.createPresence()
+except Exception as e:
+    # discord error / not open
+    pass
+
+
+
 
 if __name__ == "__main__":
     root = tk.Tk()
@@ -13,7 +26,7 @@ if __name__ == "__main__":
     root.resizable(width=False, height=False)
     root.iconbitmap(gui.getResourcePath("images/logo.ico"))
 
-    app = gui.MainApp(root)
+    app = gui.MainApp(root, discordPresence=discordPresence)
     app.setScene(gui.Scene.SCENE_INITIAL)
     app.pack(fill="both", expand=True)
 
