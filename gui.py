@@ -69,6 +69,7 @@ class MainApp(tk.Frame):
         self.root.config(menu="") # remove menu
         if self.scene: self.scene.pack_forget()
         self.currentScene = scene
+        self.root.state("normal")    # un-maximize window
         
 
         if scene == Scene.SCENE_INITIAL:
@@ -77,8 +78,6 @@ class MainApp(tk.Frame):
             self.destFolder = None
             self.trimData = []
 
-            if type(self.scene) == ClipScene:
-                pass#self.scene.video.place_forget()
             self.unbindAll()
 
             self.root.geometry("400x100")
@@ -97,13 +96,11 @@ class MainApp(tk.Frame):
             self.root.resizable(True, True)
             self.scene.pack(fill="both", expand=True)
         elif scene == Scene.SCENE_TRIM:
-            if type(self.scene) == ClipScene:
-                pass#self.scene.video.place_forget()
             self.unbindAll()
 
             if type(self.scene) == ClipScene:
                 self.savedOptions = self.scene.options 
-
+                
             self.scene = TrimScene(self, mainApp=self, options=self.savedOptions)
             self.root.minsize(400,260)
             self.root.resizable(True, True)
