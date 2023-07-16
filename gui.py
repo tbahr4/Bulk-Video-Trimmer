@@ -707,7 +707,7 @@ class NextButton(tk.Frame):
         # if no name provided, default to previous name
         if len(san_text) == 0: 
             path = self.mainApp.videoPaths[self.clipScene.currentVideo-1]
-            san_text = "".join(os.path.basename(path).split(".")[:-1])
+            san_text = os.path.basename(path).rsplit(".", 1)[0]
 
         # save picked times
         if not skipTrim:
