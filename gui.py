@@ -984,6 +984,18 @@ class TrimScene(tk.Frame):
             maxOrder = self.getFileOrder(self.mainApp.destFolder)  
             startTime = trimData["startTime"] / 1000
             endTime = trimData["endTime"] / 1000
+            
+
+            # update visual data
+            stringWidth = font.Font().measure(trimData["description"])
+            trimmedText = trimData["description"]
+            self.root.update()
+            trimWidth = self.root.winfo_width()
+            while stringWidth > trimWidth:
+                trimmedText = trimmedText[:-1]
+                stringWidth = font.Font().measure(trimmedText)
+            self.filename.config(text=f"Status: {trimmedText}{'...' if font.Font().measure(trimData['description']) > trimWidth else ''}")
+
             isSilent = False
             if self.options != None:
                 if self.options["LabelSilentClips"].get():
@@ -991,15 +1003,6 @@ class TrimScene(tk.Frame):
                     isSilent = logic.checkIsSilent(inputPath, startTime, endTime, trimScene=self)     # check if clip is silent
             outputPath = f"{self.mainApp.destFolder}/({maxOrder}) {'(no sound) ' if isSilent else ''}{trimData['description']}.mp4"
             isFramePerfect = trimData["isFramePerfect"]
-
-            # update visual data
-            stringWidth = font.Font().measure(trimData["description"])
-            trimmedText = trimData["description"]
-            trimWidth = 450
-            while stringWidth > trimWidth:
-                trimmedText = trimmedText[:-1]
-                stringWidth = font.Font().measure(trimmedText)
-            self.filename.config(text=f"Status: {trimmedText}{'...' if font.Font().measure(trimData['description']) > trimWidth else ''}")
 
             self.remainder.config(text=f"Remaining: {len(self.mainApp.trimData) - self.videoCount}")
             self.log(f"Trimming ({maxOrder}) \"{trimData['description']}\" [{round(startTime)} - {round(endTime)}] {'and re-encoding' if isFramePerfect else ''}")
