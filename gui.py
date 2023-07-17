@@ -68,7 +68,6 @@ class MainApp(tk.Frame):
         self.discordPresence = presence
 
         scene = self.getSceneType()
-        print(scene == Scene.SCENE_CLIPS)
         if scene == Scene.SCENE_INITIAL:
             self.discordPresence.updateStatus(details="Choosing videos")
         elif scene == Scene.SCENE_CLIPS:

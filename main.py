@@ -22,7 +22,6 @@ def tryAddPresence(app):
 
         if str(app.getSceneType()) == str(gui.Scene.SCENE_INITIAL):
             presence.createPresence(details="Choosing videos")
-            print(presence.details, presence.state)
         elif str(app.getSceneType()) == str(gui.Scene.SCENE_CLIPS):
             presence.createPresence(details="Clipping videos", state=f"{min(app.scene.currentVideo, app.scene.totalVideos)} of {app.scene.totalVideos}")
         elif str(app.getSceneType()) == str(gui.Scene.SCENE_TRIM):

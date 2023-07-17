@@ -27,9 +27,7 @@ class DiscordPresence():
         """
             Initialize the presence and displays an initial state
         """
-        print("before")
         self.RPC.connect()
-        print("after")
 
         self.RPC.update(
             details=details or self.details, 
