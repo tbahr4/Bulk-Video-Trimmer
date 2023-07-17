@@ -18,24 +18,26 @@ class DiscordPresence():
         self.start = int(time.time())
 
         # presence details
-        self.details = "Choosing videos"
+        self.details = None
         self.state = None
         self.displayedDetails = None
         self.displayedState = None
 
-    def createPresence(self):
+    def createPresence(self, details:str = None, state:str = None):
         """
             Initialize the presence and displays an initial state
         """
         self.RPC.connect()
 
         self.RPC.update(
-            details=self.details, 
-            state=self.state, 
+            details=details or self.details, 
+            state=state or self.state, 
             large_image="logo",
             start=self.start
         )
 
+        self.details = details
+        self.state = state
         self.lastUpdate = time.time()
         self.displayedDetails = self.details
         self.displayedState = self.state
@@ -53,24 +55,38 @@ class DiscordPresence():
         """
             Starts automatic updates on a separate thread
         """
-        updater = threading.Thread(target=self._update)
+        updater = threading.Thread(target=self._update, daemon=True)
         updater.start()
     
     def _update(self):
         """
             Should only be run every 15 seconds
         """
-        self.RPC.update(
-            details=self.details,
-            state=self.state,
-            large_image="logo",
-            start=self.start
-        )
+        def update(results):
+            try:
+                self.RPC.update(
+                    details=self.details,
+                    state=self.state,
+                    large_image="logo",
+                    start=self.start
+                )
+                results["return"] = True
+            except:
+                results["return"] = False
+
+        results = dict()
+        thread = threading.Thread(target=update, args=(results,))        # avoids freeze
+        thread.start()
+
         self.lastUpdate = time.time()
 
         # schedule next update
-        time.sleep(15)
-        self._update()
+        for i in range(15):
+            time.sleep(1)
+        thread.join()       # should never still be alive
+        
+        if results["return"]:    
+            self._update()
 
 
     def _TODO_REMOVE_sendUpdate(self):
