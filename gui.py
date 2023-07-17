@@ -65,15 +65,18 @@ class MainApp(tk.Frame):
         self.trimData = []
 
     def updateDiscordPresence(self, presence):
-        self.discordPresence = presence
+        try:
+            self.discordPresence = presence
 
-        scene = self.getSceneType()
-        if scene == Scene.SCENE_INITIAL:
-            self.discordPresence.updateStatus(details="Choosing videos")
-        elif scene == Scene.SCENE_CLIPS:
-            self.scene.video.discordPresence = presence     # handled by video
-        elif scene == Scene.SCENE_TRIM:
-            self.discordPresence.updateStatus(details="Trimming videos")
+            scene = self.getSceneType()
+            if scene == Scene.SCENE_INITIAL:
+                self.discordPresence.updateStatus(details="Choosing videos")
+            elif scene == Scene.SCENE_CLIPS:
+                self.scene.video.discordPresence = presence     # handled by video
+            elif scene == Scene.SCENE_TRIM:
+                self.discordPresence.updateStatus(details="Trimming videos")
+        except:
+                self.discordPresence = None     # discord was likely closed
 
     def setScene(self, scene: Scene):
         self.root.config(menu="") # remove menu
@@ -96,7 +99,10 @@ class MainApp(tk.Frame):
             self.scene = InitialScene(self)
             self.scene.pack(pady=5, fill="both", expand=True)
             if self.discordPresence != None:
-                self.discordPresence.updateStatus(details="Choosing videos")
+                try:
+                    self.discordPresence.updateStatus(details="Choosing videos")
+                except:
+                    self.discordPresence = None     # discord was likely closed
             
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__" and self.videoPaths == None:
@@ -119,7 +125,10 @@ class MainApp(tk.Frame):
             self.scene.pack(fill="both", expand=True)
 
             if self.discordPresence != None:
-                self.after(1000, lambda: self.discordPresence.updateStatus(details="Trimming videos"))
+                try:
+                    self.after(1000, lambda: self.discordPresence.updateStatus(details="Trimming videos"))
+                except:
+                    self.discordPresence = None     # discord was likely closed
                 
 
     def getSceneType(self):

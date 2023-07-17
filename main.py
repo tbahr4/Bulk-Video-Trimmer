@@ -16,19 +16,12 @@ def tryAddPresence(app):
         global discordPresence
         presence = discord.DiscordPresence()
 
-
-
-        
-
         if str(app.getSceneType()) == str(gui.Scene.SCENE_INITIAL):
             presence.createPresence(details="Choosing videos")
         elif str(app.getSceneType()) == str(gui.Scene.SCENE_CLIPS):
             presence.createPresence(details="Clipping videos", state=f"{min(app.scene.currentVideo, app.scene.totalVideos)} of {app.scene.totalVideos}")
         elif str(app.getSceneType()) == str(gui.Scene.SCENE_TRIM):
             presence.createPresence(details="Trimming videos")
-
-        
-
 
         presence.scheduleUpdates()   
         discordPresence = presence

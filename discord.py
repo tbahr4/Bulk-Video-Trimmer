@@ -62,14 +62,20 @@ class DiscordPresence():
         """
             Should only be run every 15 seconds
         """
-        def update():
-            self.RPC.update(
-                details=self.details,
-                state=self.state,
-                large_image="logo",
-                start=self.start
-            )
-        thread = threading.Thread(target=update)        # avoids freeze
+        def update(results):
+            try:
+                self.RPC.update(
+                    details=self.details,
+                    state=self.state,
+                    large_image="logo",
+                    start=self.start
+                )
+                results["return"] = True
+            except:
+                results["return"] = False
+
+        results = dict()
+        thread = threading.Thread(target=update, args=(results,))        # avoids freeze
         thread.start()
 
         self.lastUpdate = time.time()
@@ -77,8 +83,10 @@ class DiscordPresence():
         # schedule next update
         for i in range(15):
             time.sleep(1)
-            
-        self._update()
+        thread.join()       # should never still be alive
+        
+        if results["return"]:    
+            self._update()
 
 
     def _TODO_REMOVE_sendUpdate(self):

@@ -495,7 +495,10 @@ class VideoPlayer(tk.Frame):
 
         # update discord presence
         if self.discordPresence is not None:
-            self.discordPresence.updateStatus(details="Clipping videos", state=f"{min(self.clipScene.currentVideo, self.clipScene.totalVideos)} of {self.clipScene.totalVideos}") 
+            try:
+                self.discordPresence.updateStatus(details="Clipping videos", state=f"{min(self.clipScene.currentVideo, self.clipScene.totalVideos)} of {self.clipScene.totalVideos}") 
+            except:
+                self.discordPresence = None     # discord was likely closed
 
         # update options
         if self.clipScene != None:
