@@ -335,9 +335,10 @@ class ClipScene(tk.Frame):
                 self.footerBar.nextButton.button.config(state="disabled")
 
             currState = self.controlMenu.entrycget("Save clip", "state")
-            if not self.options["AllowUnnamedFiles"].get() and currState != "disabled":
+
+            if not (isEnabled or len(self.footerBar.descBar.boxContents.get()) > 0) and currState != "disabled":
                 self.controlMenu.entryconfigure("Save clip", state='disabled')
-            elif self.options["AllowUnnamedFiles"].get() and currState != "normal":
+            elif (isEnabled or len(self.footerBar.descBar.boxContents.get()) > 0) and currState != "normal":
                 self.controlMenu.entryconfigure("Save clip", state='normal')
         self.optionMenu.add_checkbutton(label="Allow unnamed files", variable=cbox_AllowUnnamedFiles, command=onClick_AllowUnnamedFiles)
         # change arrow key functionality
