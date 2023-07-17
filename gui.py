@@ -764,7 +764,8 @@ class NextButton(tk.Frame):
 
                 # replace file count to fit
                 self.mainApp.root.update()
-                self.clipScene.tFileCount.place(x=self.clipScene.video.winfo_width()-5-self.clipScene.tFileCount.winfo_width(), y=2)
+                if not self.parent.parent.video.bFullscreen.isFullscreen:
+                    self.clipScene.tFileCount.place(x=self.clipScene.video.winfo_width()-5-self.clipScene.tFileCount.winfo_width(), y=2)
 
                 # update video
                 self.clipScene.video.openVideo(self.mainApp.videoPaths[self.clipScene.currentVideo-1])
