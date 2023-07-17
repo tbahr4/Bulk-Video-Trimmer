@@ -13,6 +13,7 @@ discordPresence = None
 try:
     discordPresence = discord.DiscordPresence()
     discordPresence.createPresence()
+    discordPresence.scheduleUpdates()   
 except Exception as e:
     # discord error / not open
     pass

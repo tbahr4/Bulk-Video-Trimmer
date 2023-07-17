@@ -185,7 +185,7 @@ def checkIsSilent(inputPath: str, startTime: float, endTime: float, trimScene = 
 
     # exec on separate thread
     def execCommand(event):
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
         event.returnValue = result.stdout, result.stderr
 
     # check multiple positions for silence to save time

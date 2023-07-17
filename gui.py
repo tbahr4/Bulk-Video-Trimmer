@@ -69,6 +69,7 @@ class MainApp(tk.Frame):
         self.root.config(menu="") # remove menu
         if self.scene: self.scene.pack_forget()
         self.currentScene = scene
+        self.root.state("normal")    # un-maximize window
         
 
         if scene == Scene.SCENE_INITIAL:
@@ -77,8 +78,6 @@ class MainApp(tk.Frame):
             self.destFolder = None
             self.trimData = []
 
-            if type(self.scene) == ClipScene:
-                pass#self.scene.video.place_forget()
             self.unbindAll()
 
             self.root.geometry("400x100")
@@ -86,6 +85,8 @@ class MainApp(tk.Frame):
             self.root.resizable(False, False)
             self.scene = InitialScene(self)
             self.scene.pack(pady=5, fill="both", expand=True)
+            if self.discordPresence != None:
+                self.after(1000, self.discordPresence.updateStatus(details="Choosing videos"))
             
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__" and self.videoPaths == None:
@@ -97,20 +98,19 @@ class MainApp(tk.Frame):
             self.root.resizable(True, True)
             self.scene.pack(fill="both", expand=True)
         elif scene == Scene.SCENE_TRIM:
-            if type(self.scene) == ClipScene:
-                pass#self.scene.video.place_forget()
             self.unbindAll()
 
             if type(self.scene) == ClipScene:
                 self.savedOptions = self.scene.options 
-
+                
             self.scene = TrimScene(self, mainApp=self, options=self.savedOptions)
             self.root.minsize(400,260)
             self.root.resizable(True, True)
             self.scene.pack(fill="both", expand=True)
 
             if self.discordPresence != None:
-                self.discordPresence.updateStatus(details="Trimming videos")
+                self.after(1000, lambda: self.discordPresence.updateStatus(details="Trimming videos"))
+                
 
     def getSceneType(self):
         if type(self.scene) == InitialScene:
@@ -338,9 +338,10 @@ class ClipScene(tk.Frame):
                 self.footerBar.nextButton.button.config(state="disabled")
 
             currState = self.controlMenu.entrycget("Save clip", "state")
-            if not self.options["AllowUnnamedFiles"].get() and currState != "disabled":
+
+            if not (isEnabled or len(self.footerBar.descBar.boxContents.get()) > 0) and currState != "disabled":
                 self.controlMenu.entryconfigure("Save clip", state='disabled')
-            elif self.options["AllowUnnamedFiles"].get() and currState != "normal":
+            elif (isEnabled or len(self.footerBar.descBar.boxContents.get()) > 0) and currState != "normal":
                 self.controlMenu.entryconfigure("Save clip", state='normal')
         self.optionMenu.add_checkbutton(label="Allow unnamed files", variable=cbox_AllowUnnamedFiles, command=onClick_AllowUnnamedFiles)
         # change arrow key functionality
@@ -710,7 +711,7 @@ class NextButton(tk.Frame):
         # if no name provided, default to previous name
         if len(san_text) == 0: 
             path = self.mainApp.videoPaths[self.clipScene.currentVideo-1]
-            san_text = "".join(os.path.basename(path).split(".")[:-1])
+            san_text = os.path.basename(path).rsplit(".", 1)[0]
 
         # save picked times
         if not skipTrim:
@@ -763,7 +764,8 @@ class NextButton(tk.Frame):
 
                 # replace file count to fit
                 self.mainApp.root.update()
-                self.clipScene.tFileCount.place(x=self.clipScene.video.winfo_width()-5-self.clipScene.tFileCount.winfo_width(), y=2)
+                if not self.parent.parent.video.bFullscreen.isFullscreen:
+                    self.clipScene.tFileCount.place(x=self.clipScene.video.winfo_width()-5-self.clipScene.tFileCount.winfo_width(), y=2)
 
                 # update video
                 self.clipScene.video.openVideo(self.mainApp.videoPaths[self.clipScene.currentVideo-1])
@@ -987,6 +989,18 @@ class TrimScene(tk.Frame):
             maxOrder = self.getFileOrder(self.mainApp.destFolder)  
             startTime = trimData["startTime"] / 1000
             endTime = trimData["endTime"] / 1000
+            
+
+            # update visual data
+            stringWidth = font.Font().measure(trimData["description"])
+            trimmedText = trimData["description"]
+            self.root.update()
+            trimWidth = self.root.winfo_width()
+            while stringWidth > trimWidth:
+                trimmedText = trimmedText[:-1]
+                stringWidth = font.Font().measure(trimmedText)
+            self.filename.config(text=f"Status: {trimmedText}{'...' if font.Font().measure(trimData['description']) > trimWidth else ''}")
+
             isSilent = False
             if self.options != None:
                 if self.options["LabelSilentClips"].get():
@@ -994,15 +1008,6 @@ class TrimScene(tk.Frame):
                     isSilent = logic.checkIsSilent(inputPath, startTime, endTime, trimScene=self)     # check if clip is silent
             outputPath = f"{self.mainApp.destFolder}/({maxOrder}) {'(no sound) ' if isSilent else ''}{trimData['description']}.mp4"
             isFramePerfect = trimData["isFramePerfect"]
-
-            # update visual data
-            stringWidth = font.Font().measure(trimData["description"])
-            trimmedText = trimData["description"]
-            trimWidth = 450
-            while stringWidth > trimWidth:
-                trimmedText = trimmedText[:-1]
-                stringWidth = font.Font().measure(trimmedText)
-            self.filename.config(text=f"Status: {trimmedText}{'...' if font.Font().measure(trimData['description']) > trimWidth else ''}")
 
             self.remainder.config(text=f"Remaining: {len(self.mainApp.trimData) - self.videoCount}")
             self.log(f"Trimming ({maxOrder}) \"{trimData['description']}\" [{round(startTime)} - {round(endTime)}] {'and re-encoding' if isFramePerfect else ''}")

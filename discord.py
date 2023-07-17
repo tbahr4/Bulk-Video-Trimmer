@@ -6,6 +6,7 @@
 
 from pypresence import Presence
 import time
+import threading
 
 
 
@@ -48,7 +49,31 @@ class DiscordPresence():
         if details != None: self.details = details
         if state != None: self.state = state
 
-    def sendUpdate(self):
+    def scheduleUpdates(self):
+        """
+            Starts automatic updates on a separate thread
+        """
+        updater = threading.Thread(target=self._update)
+        updater.start()
+    
+    def _update(self):
+        """
+            Should only be run every 15 seconds
+        """
+        self.RPC.update(
+            details=self.details,
+            state=self.state,
+            large_image="logo",
+            start=self.start
+        )
+        self.lastUpdate = time.time()
+
+        # schedule next update
+        time.sleep(15)
+        self._update()
+
+
+    def _TODO_REMOVE_sendUpdate(self):
         """
             Schedules an update to the presence to the given values
             Does not execute if it has not been 15 seconds since last update
