@@ -86,7 +86,7 @@ class MainApp(tk.Frame):
             self.scene = InitialScene(self)
             self.scene.pack(pady=5, fill="both", expand=True)
             if self.discordPresence != None:
-                self.after(1000, self.discordPresence.updateStatus(details="Choosing videos"))
+                self.discordPresence.updateStatus(details="Choosing videos")
             
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__" and self.videoPaths == None:
