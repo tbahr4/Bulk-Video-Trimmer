@@ -45,13 +45,13 @@ class MainApp(tk.Frame):
     """
         The main gui application
     """
-    def __init__(self, parent, discordPresence = None):
+    def __init__(self, parent):
         super().__init__(parent)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.root = parent
         self.parent = parent
-        self.discordPresence = discordPresence
+        self.discordPresence = None
         self.currentScene = Scene.SCENE_INITIAL
         self.savedOptions = None
         
@@ -64,6 +64,17 @@ class MainApp(tk.Frame):
         self.destFolder = None
         self.trimData = []
 
+    def updateDiscordPresence(self, presence):
+        self.discordPresence = presence
+
+        scene = self.getSceneType()
+        print(scene == Scene.SCENE_CLIPS)
+        if scene == Scene.SCENE_INITIAL:
+            self.discordPresence.updateStatus(details="Choosing videos")
+        elif scene == Scene.SCENE_CLIPS:
+            self.scene.video.discordPresence = presence     # handled by video
+        elif scene == Scene.SCENE_TRIM:
+            self.discordPresence.updateStatus(details="Trimming videos")
 
     def setScene(self, scene: Scene):
         self.root.config(menu="") # remove menu

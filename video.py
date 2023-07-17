@@ -406,7 +406,7 @@ class VideoPlayer(tk.Frame):
         self.bPause.setPaused()
 
     def scheduleUpdates(self):
-        updater = threading.Thread(target=self._update)
+        updater = threading.Thread(target=self._update, daemon=True)
         updater.start()
 
     def _update(self):
