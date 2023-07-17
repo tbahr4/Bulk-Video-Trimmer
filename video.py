@@ -493,11 +493,8 @@ class VideoPlayer(tk.Frame):
                     else:
                         self._setPlayerPosition(self.restrictRight / duration)     
 
-        # update discord presence     
-        if self.discordPresence != None:
-            if self.mainApp.currentScene == gui.Scene.SCENE_CLIPS:
-                self.discordPresence.updateStatus(details="Clipping videos", state=f"{min(self.clipScene.currentVideo, self.clipScene.totalVideos)} of {self.clipScene.totalVideos}")   
-            self.discordPresence.sendUpdate()     
+        # update discord presence
+        self.discordPresence.updateStatus(details="Clipping videos", state=f"{min(self.clipScene.currentVideo, self.clipScene.totalVideos)} of {self.clipScene.totalVideos}") 
 
         # update options
         if self.clipScene != None:

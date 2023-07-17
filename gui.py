@@ -85,6 +85,8 @@ class MainApp(tk.Frame):
             self.root.resizable(False, False)
             self.scene = InitialScene(self)
             self.scene.pack(pady=5, fill="both", expand=True)
+            if self.discordPresence != None:
+                self.after(1000, self.discordPresence.updateStatus(details="Choosing videos"))
             
         elif scene == Scene.SCENE_CLIPS:
             if __name__ == "__main__" and self.videoPaths == None:
@@ -107,7 +109,8 @@ class MainApp(tk.Frame):
             self.scene.pack(fill="both", expand=True)
 
             if self.discordPresence != None:
-                self.discordPresence.updateStatus(details="Trimming videos")
+                self.after(1000, lambda: self.discordPresence.updateStatus(details="Trimming videos"))
+                
 
     def getSceneType(self):
         if type(self.scene) == InitialScene:
